@@ -58,7 +58,7 @@ export function RegisterCard() {
   };
 
   return (
-    <div className="grid h-[calc(100vh-132px)] min-h-[640px] items-stretch gap-0 overflow-hidden rounded-xl border border-stone-200 bg-white/70 xl:grid-cols-2">
+    <div className="grid min-h-0 items-stretch gap-0 overflow-y-auto rounded-xl border border-stone-200 bg-white/70 xl:h-[calc(100vh-132px)] xl:min-h-[640px] xl:overflow-hidden xl:grid-cols-2">
       <section className="space-y-4 overflow-y-auto border-b border-stone-200 p-4 xl:border-r xl:border-b-0">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -247,7 +247,7 @@ export function RegisterCard() {
                 {config.enabled ? "运行中" : "已停止"}
               </Badge>
             </div>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {[
                 ["成功 / 成功率", `${stats.success} / ${stats.success_rate || 0}%`],
                 ["失败", stats.fail],
@@ -284,7 +284,7 @@ export function RegisterCard() {
             </div>
         </div>
 
-        <div className="mt-4 flex min-h-0 flex-1 flex-col space-y-3 overflow-hidden border-t border-stone-200 pt-4">
+        <div className="mt-4 flex min-h-[300px] flex-col space-y-3 overflow-hidden border-t border-stone-200 pt-4 xl:min-h-0 xl:flex-1">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-stone-900">实时日志</h3>
@@ -294,7 +294,7 @@ export function RegisterCard() {
                 {logs.length}
               </Badge>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto border border-stone-200 bg-white/70 p-3 font-mono text-xs leading-6">
+            <div className="max-h-[60vh] overflow-y-auto border border-stone-200 bg-white/70 p-3 font-mono text-xs leading-6 xl:max-h-none xl:min-h-0 xl:flex-1">
               {logs.length === 0 ? (
                 <div className="text-stone-500">暂无日志</div>
               ) : (
