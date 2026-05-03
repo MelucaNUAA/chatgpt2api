@@ -206,7 +206,7 @@ class CloudflareTempMailProvider(BaseMailProvider):
     def __init__(self, entry: dict, conf: dict):
         super().__init__(conf, str(entry.get("provider_ref") or ""))
         self.api_base = str(entry["api_base"]).rstrip("/")
-        self.admin_password = str(entry["admin_password"]).strip()
+        self.admin_password = str(entry.get("admin_password") or "").strip()
         self.domain = entry.get("domain") or []
         self.session = curl_requests.Session(impersonate="chrome")
 
@@ -217,7 +217,13 @@ class CloudflareTempMailProvider(BaseMailProvider):
         return {} if resp.status_code == 204 else resp.json()
 
     def create_mailbox(self, username: str | None = None) -> dict[str, Any]:
-        data = self._request("POST", "/admin/new_address", headers={"x-admin-auth": self.admin_password}, payload={"enablePrefix": True, "name": username or _random_mailbox_name(), "domain": _next_domain(self.domain)})
+        if self.admin_password:
+            headers = {"x-admin-auth": self.admin_password}
+            path = "/admin/new_address"
+        else:
+            headers = {}
+            path = "/api/new_address"
+        data = self._request("POST", path, headers=headers, payload={"enablePrefix": True, "name": username or _random_mailbox_name(), "domain": _next_domain(self.domain)})
         address = str(data.get("address") or "").strip()
         token = str(data.get("jwt") or "").strip()
         if not address or not token:
