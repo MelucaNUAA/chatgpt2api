@@ -34,6 +34,9 @@ export default function LoginPage() {
         subjectId: data.subject_id,
         name: data.name,
       });
+      if (data.role === "user" && data.image_retention_hours) {
+        toast.info(`您生成的图片将在 ${data.image_retention_hours} 小时后自动清理，请及时保存`, { duration: 6000 });
+      }
       router.replace(getDefaultRouteForRole(data.role));
     } catch (error) {
       const message = error instanceof Error ? error.message : "登录失败";

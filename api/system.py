@@ -49,13 +49,16 @@ def create_router(app_version: str) -> APIRouter:
     @router.post("/auth/login")
     async def login(authorization: str | None = Header(default=None)):
         identity = require_identity(authorization)
-        return {
+        result: dict[str, object] = {
             "ok": True,
             "version": app_version,
             "role": identity.get("role"),
             "subject_id": identity.get("id"),
             "name": identity.get("name"),
         }
+        if identity.get("role") == "user":
+            result["image_retention_hours"] = config.guest_image_retention_days * 24
+        return result
 
     @router.get("/version")
     async def get_version():

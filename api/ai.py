@@ -95,6 +95,7 @@ def create_router() -> APIRouter:
         identity = require_identity(authorization)
         payload = body.model_dump(mode="python")
         payload["base_url"] = resolve_image_base_url(request)
+        payload["owner_role"] = identity.get("role")
         call = LoggedCall(identity, "/v1/images/generations", body.model, "文生图", request_text=body.prompt)
         await filter_or_log(call, body.prompt)
         _check_and_consume_image_quota(identity, body.n)
@@ -139,6 +140,7 @@ def create_router() -> APIRouter:
             "response_format": response_format,
             "stream": stream,
             "base_url": resolve_image_base_url(request),
+            "owner_role": identity.get("role"),
         }
         return await call.run(openai_v1_image_edit.handle, payload)
 

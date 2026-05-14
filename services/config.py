@@ -195,6 +195,13 @@ class ConfigStore:
             return 3
 
     @property
+    def image_upload_max_mb(self) -> int:
+        try:
+            return max(1, int(self.data.get("image_upload_max_mb", 5)))
+        except (TypeError, ValueError):
+            return 5
+
+    @property
     def auto_remove_invalid_accounts(self) -> bool:
         value = self.data.get("auto_remove_invalid_accounts", False)
         if isinstance(value, str):
@@ -242,14 +249,37 @@ class ConfigStore:
         path.mkdir(parents=True, exist_ok=True)
         return path
 
+    @property
+    def guest_images_dir(self) -> Path:
+        path = DATA_DIR / "guest_images"
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    @property
+    def guest_image_retention_days(self) -> int:
+        try:
+            return max(1, int(self.data.get("guest_image_retention_days") or 1))
+        except (TypeError, ValueError):
+            return 1
+
     def cleanup_old_images(self) -> int:
-        cutoff = time.time() - self.image_retention_days * 86400
         removed = 0
+        cutoff = time.time() - self.image_retention_days * 86400
         for path in self.images_dir.rglob("*"):
             if path.is_file() and path.stat().st_mtime < cutoff:
                 path.unlink()
                 removed += 1
         for path in sorted((p for p in self.images_dir.rglob("*") if p.is_dir()), key=lambda p: len(p.parts), reverse=True):
+            try:
+                path.rmdir()
+            except OSError:
+                pass
+        guest_cutoff = time.time() - self.guest_image_retention_days * 86400
+        for path in self.guest_images_dir.rglob("*"):
+            if path.is_file() and path.stat().st_mtime < guest_cutoff:
+                path.unlink()
+                removed += 1
+        for path in sorted((p for p in self.guest_images_dir.rglob("*") if p.is_dir()), key=lambda p: len(p.parts), reverse=True):
             try:
                 path.rmdir()
             except OSError:

@@ -190,6 +190,7 @@ export type LoginResponse = {
   role: AuthRole;
   subject_id: string;
   name: string;
+  image_retention_hours?: number;
 };
 
 export type UserKey = {
