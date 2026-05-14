@@ -26,12 +26,15 @@ from services.sub2api_service import (
 
 class UserKeyCreateRequest(BaseModel):
     name: str = ""
+    image_limit: int | None = Field(default=10, ge=1)
 
 
 class UserKeyUpdateRequest(BaseModel):
     name: str | None = None
     enabled: bool | None = None
     key: str | None = None
+    image_limit: int | None = Field(default=None)
+    reset_image_usage: bool = False
 
 
 class AccountCreateRequest(BaseModel):
@@ -103,7 +106,7 @@ def create_router() -> APIRouter:
     async def create_user_key(body: UserKeyCreateRequest, authorization: str | None = Header(default=None)):
         require_admin(authorization)
         try:
-            item, raw_key = auth_service.create_key(role="user", name=body.name)
+            item, raw_key = auth_service.create_key(role="user", name=body.name, image_limit=body.image_limit)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail={"error": str(exc)}) from exc
         return {"item": item, "key": raw_key, "items": auth_service.list_keys(role="user")}
@@ -115,15 +118,17 @@ def create_router() -> APIRouter:
             authorization: str | None = Header(default=None),
     ):
         require_admin(authorization)
-        updates = {
-            key: value
-            for key, value in {
-                "name": body.name,
-                "enabled": body.enabled,
-                "key": body.key,
-            }.items()
-            if value is not None
-        }
+        updates: dict[str, object] = {}
+        if body.name is not None:
+            updates["name"] = body.name
+        if body.enabled is not None:
+            updates["enabled"] = body.enabled
+        if body.key is not None:
+            updates["key"] = body.key
+        if body.image_limit is not None:
+            updates["image_limit"] = body.image_limit
+        if body.reset_image_usage:
+            updates["reset_image_usage"] = True
         if not updates:
             raise HTTPException(status_code=400, detail={"error": "还没有检测到改动，请修改后再保存"})
         try:

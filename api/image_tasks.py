@@ -5,6 +5,7 @@ from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 
 from api.support import require_identity, resolve_image_base_url
+from services.auth_service import auth_service
 from services.content_filter import check_request
 from services.image_task_service import image_task_service
 from services.log_service import LoggedCall
@@ -19,6 +20,16 @@ class ImageGenerationTaskRequest(BaseModel):
 
 def _parse_task_ids(value: str) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def _check_and_consume_image_quota(identity: dict[str, object], count: int) -> None:
+    key_id = str(identity.get("id") or "")
+    if not key_id or key_id == "admin":
+        return
+    if identity.get("role") == "admin":
+        return
+    auth_service.check_image_quota(key_id, count)
+    auth_service.consume_image_quota(key_id, count)
 
 
 async def filter_or_log(call: LoggedCall, text: str) -> None:
@@ -48,6 +59,7 @@ def create_router() -> APIRouter:
     ):
         identity = require_identity(authorization)
         await filter_or_log(LoggedCall(identity, "/api/image-tasks/generations", body.model, "文生图任务", request_text=body.prompt), body.prompt)
+        _check_and_consume_image_quota(identity, 1)
         try:
             return await run_in_threadpool(
                 image_task_service.submit_generation,
@@ -74,6 +86,7 @@ def create_router() -> APIRouter:
     ):
         identity = require_identity(authorization)
         await filter_or_log(LoggedCall(identity, "/api/image-tasks/edits", model, "图生图任务", request_text=prompt), prompt)
+        _check_and_consume_image_quota(identity, 1)
         uploads = [*(image or []), *(image_list or [])]
         if not uploads:
             raise HTTPException(status_code=400, detail={"error": "image file is required"})

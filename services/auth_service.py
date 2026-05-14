@@ -50,6 +50,20 @@ class AuthService:
         name = self._clean(raw.get("name")) or self._default_name(role)
         created_at = self._clean(raw.get("created_at")) or _now_iso()
         last_used_at = self._clean(raw.get("last_used_at")) or None
+        image_limit_raw = raw.get("image_limit")
+        if image_limit_raw is None:
+            image_limit = None
+        else:
+            try:
+                image_limit = int(image_limit_raw)
+                if image_limit < 0:
+                    image_limit = None
+            except (ValueError, TypeError):
+                image_limit = None
+        try:
+            image_used = max(0, int(raw.get("image_used") or 0))
+        except (ValueError, TypeError):
+            image_used = 0
         return {
             "id": item_id,
             "name": name,
@@ -58,6 +72,8 @@ class AuthService:
             "enabled": bool(raw.get("enabled", True)),
             "created_at": created_at,
             "last_used_at": last_used_at,
+            "image_limit": image_limit,
+            "image_used": image_used,
         }
 
     def _load(self) -> list[dict[str, object]]:
@@ -84,6 +100,8 @@ class AuthService:
             "enabled": bool(item.get("enabled", True)),
             "created_at": item.get("created_at"),
             "last_used_at": item.get("last_used_at"),
+            "image_limit": item.get("image_limit"),
+            "image_used": item.get("image_used"),
         }
 
     def list_keys(self, role: AuthRole | None = None) -> list[dict[str, object]]:
@@ -147,7 +165,7 @@ class AuthService:
             raise ValueError("这个名称已经在使用中了，换一个更容易区分的名称吧")
         return candidate
 
-    def create_key(self, *, role: AuthRole, name: str = "") -> tuple[dict[str, object], str]:
+    def create_key(self, *, role: AuthRole, name: str = "", image_limit: int | None = 10) -> tuple[dict[str, object], str]:
         with self._lock:
             self._reload_locked()
             normalized_name = self._build_name_locked(name, role=role)
@@ -166,6 +184,8 @@ class AuthService:
                 "enabled": True,
                 "created_at": _now_iso(),
                 "last_used_at": None,
+                "image_limit": image_limit,
+                "image_used": 0,
             }
             self._items.append(item)
             self._save()
@@ -200,6 +220,17 @@ class AuthService:
                     next_item["enabled"] = bool(updates.get("enabled"))
                 if "key" in updates and updates.get("key") is not None:
                     next_item["key_hash"] = self._build_key_hash_locked(str(updates.get("key") or ""), exclude_id=normalized_id)
+                if "image_limit" in updates:
+                    limit_val = updates.get("image_limit")
+                    if limit_val is None or limit_val == "" or limit_val == -1:
+                        next_item["image_limit"] = None
+                    else:
+                        try:
+                            next_item["image_limit"] = max(1, int(limit_val))
+                        except (ValueError, TypeError):
+                            pass
+                if updates.get("reset_image_usage"):
+                    next_item["image_used"] = 0
                 self._items[index] = next_item
                 self._save()
                 return self._public_item(next_item)
@@ -221,6 +252,37 @@ class AuthService:
                 return False
             self._save()
             return True
+
+    def check_image_quota(self, key_id: str, count: int) -> None:
+        with self._lock:
+            self._reload_locked()
+            for item in self._items:
+                if item.get("id") != key_id:
+                    continue
+                limit = item.get("image_limit")
+                if limit is None:
+                    return
+                used = int(item.get("image_used") or 0)
+                if used + count > limit:
+                    raise ValueError(f"该 API Key 的生图配额已用完（已用 {used}/{limit}）")
+                return
+
+    def consume_image_quota(self, key_id: str, count: int) -> None:
+        with self._lock:
+            self._reload_locked()
+            for index, item in enumerate(self._items):
+                if item.get("id") != key_id:
+                    continue
+                limit = item.get("image_limit")
+                if limit is None:
+                    return
+                next_item = dict(item)
+                next_item["image_used"] = int(next_item.get("image_used") or 0) + count
+                if next_item["image_used"] >= limit:
+                    next_item["enabled"] = False
+                self._items[index] = next_item
+                self._save()
+                return
 
     def authenticate(self, raw_key: str) -> dict[str, object] | None:
         candidate = self._clean(raw_key)

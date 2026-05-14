@@ -48,6 +48,9 @@ export function UserKeysCard() {
   const [editingItem, setEditingItem] = useState<UserKey | null>(null);
   const [editName, setEditName] = useState("");
   const [editKey, setEditKey] = useState("");
+  const [imageLimit, setImageLimit] = useState("10");
+  const [editImageLimit, setEditImageLimit] = useState("");
+  const [isResettingUsage, setIsResettingUsage] = useState(false);
 
   const load = async () => {
     setIsLoading(true);
@@ -72,10 +75,12 @@ export function UserKeysCard() {
   const handleCreate = async () => {
     setIsCreating(true);
     try {
-      const data = await createUserKey(name.trim());
+      const limit = imageLimit.trim() ? Math.max(1, parseInt(imageLimit, 10)) : null;
+      const data = await createUserKey(name.trim(), limit);
       setItems(data.items);
       setRevealedKey(data.key);
       setName("");
+      setImageLimit("10");
       setIsDialogOpen(false);
       toast.success("用户密钥已创建");
     } catch (error) {
@@ -132,6 +137,8 @@ export function UserKeysCard() {
     setEditingItem(item);
     setEditName(item.name);
     setEditKey("");
+    setEditImageLimit(item.image_limit === null ? "" : String(item.image_limit));
+    setIsResettingUsage(false);
   };
 
   const handleEdit = async () => {
@@ -141,20 +148,27 @@ export function UserKeysCard() {
     const item = editingItem;
     const trimmedName = editName.trim();
     const trimmedKey = editKey.trim();
-    if (trimmedName === item.name && !trimmedKey) {
+    const limitValue = editImageLimit.trim() ? Math.max(1, parseInt(editImageLimit, 10)) : -1;
+    const hasNameChange = trimmedName !== item.name;
+    const hasKeyChange = !!trimmedKey;
+    const hasLimitChange = limitValue !== (item.image_limit ?? -1);
+    const hasReset = isResettingUsage;
+    if (!hasNameChange && !hasKeyChange && !hasLimitChange && !hasReset) {
       setEditingItem(null);
       return;
     }
     setItemPending(item.id, true);
     try {
       const data = await updateUserKey(item.id, {
-        ...(trimmedName !== item.name ? { name: trimmedName } : {}),
-        ...(trimmedKey ? { key: trimmedKey } : {}),
+        ...(hasNameChange ? { name: trimmedName } : {}),
+        ...(hasKeyChange ? { key: trimmedKey } : {}),
+        ...(hasLimitChange ? { image_limit: limitValue } : {}),
+        ...(hasReset ? { reset_image_usage: true } : {}),
       });
       setItems(data.items);
       setEditingItem(null);
       setEditKey("");
-      toast.success(trimmedKey ? "用户密钥已更新" : "用户名称已更新");
+      toast.success("用户密钥已更新");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "更新用户密钥失败");
     } finally {
@@ -233,6 +247,9 @@ export function UserKeysCard() {
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-500">
                         <span>创建时间 {formatDateTime(item.created_at)}</span>
                         <span>最近使用 {formatDateTime(item.last_used_at)}</span>
+                        <span>
+                          生图 {item.image_limit === null ? "不限" : `${item.image_used}/${item.image_limit}`}
+                        </span>
                       </div>
                     </div>
 
@@ -298,6 +315,18 @@ export function UserKeysCard() {
               placeholder="例如：设计同学 A、运营临时账号"
               className="h-11 rounded-xl border-stone-200 bg-white"
             />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-stone-700">生图限额</label>
+            <Input
+              value={imageLimit}
+              onChange={(event) => setImageLimit(event.target.value)}
+              placeholder="10"
+              type="number"
+              min="1"
+              className="h-11 rounded-xl border-stone-200 bg-white"
+            />
+            <p className="text-xs text-stone-500">该密钥最多可生成的图片数量，留空表示不限制。</p>
           </div>
           <DialogFooter>
             <Button
@@ -390,6 +419,35 @@ export function UserKeysCard() {
               <p className="text-xs leading-5 text-stone-500">
                 保存后旧密钥会立即失效，新密钥生效。系统仍只保存哈希，不会回显当前密钥。
               </p>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-stone-700">生图限额</label>
+              <Input
+                value={editImageLimit}
+                onChange={(event) => setEditImageLimit(event.target.value)}
+                placeholder="留空表示不限制"
+                type="number"
+                min="1"
+                className="h-11 rounded-xl border-stone-200 bg-white"
+              />
+              <p className="text-xs text-stone-500">
+                当前已使用 {editingItem?.image_used ?? 0} 张
+                {editingItem?.image_limit !== null ? `（上限 ${editingItem?.image_limit}）` : "（不限制）"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9 rounded-xl border-stone-200 bg-white px-3 text-stone-700"
+                onClick={() => setIsResettingUsage(true)}
+                disabled={isResettingUsage || (editingItem?.image_used ?? 0) === 0}
+              >
+                重置已用计数
+              </Button>
+              {isResettingUsage && (
+                <span className="text-xs text-emerald-600">保存后重置为 0</span>
+              )}
             </div>
           </div>
           <DialogFooter>
