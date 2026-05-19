@@ -22,9 +22,11 @@ import {
   createImageGenerationTask,
   fetchAccounts,
   fetchImageTasks,
+  fetchSettingsConfig,
   type Account,
   type ImageTask,
 } from "@/lib/api";
+import { compressImageFile } from "@/lib/utils";
 import { useAuthGuard } from "@/lib/use-auth-guard";
 import {
   clearImageConversations,
@@ -364,6 +366,8 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
     | { type: "all" }
     | null
   >(null);
+  const [imageUploadMaxMb, setImageUploadMaxMb] = useState(5);
+  const [compressConfirm, setCompressConfirm] = useState<{ files: File[]; totalSizeMb: string } | null>(null);
 
   const parsedCount = useMemo(() => Number(clampImageCount(imageCount)), [imageCount]);
   const selectedConversation = useMemo(
@@ -450,8 +454,12 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
       return;
     }
     try {
-      const data = await fetchAccounts();
-      setAvailableQuota(formatAvailableQuota(data.items));
+      const [accountsData, configData] = await Promise.all([fetchAccounts(), fetchSettingsConfig()]);
+      setAvailableQuota(formatAvailableQuota(accountsData.items));
+      const maxMb = Number(configData.config?.image_upload_max_mb);
+      if (maxMb > 0) {
+        setImageUploadMaxMb(maxMb);
+      }
     } catch {
       setAvailableQuota((prev) => (prev === "加载中..." ? "--" : prev));
     }
@@ -698,6 +706,18 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
       return;
     }
 
+    const maxBytes = imageUploadMaxMb * 1024 * 1024;
+    const oversizeFiles = files.filter((file) => file.size > maxBytes);
+    if (oversizeFiles.length > 0) {
+      const totalSizeMb = (oversizeFiles.reduce((sum, file) => sum + file.size, 0) / 1024 / 1024).toFixed(1);
+      setCompressConfirm({ files, totalSizeMb });
+      return;
+    }
+
+    await doAppendReferenceImages(files);
+  }, [imageUploadMaxMb]);
+
+  const doAppendReferenceImages = useCallback(async (files: File[]) => {
     try {
       const previews = await Promise.all(
         files.map(async (file) => ({
@@ -717,6 +737,30 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
       toast.error(message);
     }
   }, []);
+
+  const handleCompressConfirm = useCallback(async (accept: boolean) => {
+    const pending = compressConfirm;
+    setCompressConfirm(null);
+    if (!pending) return;
+
+    if (!accept) {
+      toast.info("已取消上传");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    toast.info("正在压缩图片...");
+    try {
+      const compressed = await Promise.all(
+        pending.files.map((file) => compressImageFile(file, imageUploadMaxMb)),
+      );
+      await doAppendReferenceImages(compressed);
+      toast.success("压缩完成，已添加参考图");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "压缩图片失败";
+      toast.error(message);
+    }
+  }, [compressConfirm, imageUploadMaxMb, doAppendReferenceImages]);
 
   const handleReferenceImageChange = useCallback(
     async (files: File[]) => {
@@ -1263,6 +1307,27 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
               </Button>
               <Button className="bg-rose-600 text-white hover:bg-rose-700" onClick={() => void handleConfirmDelete()}>
                 确认删除
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      ) : null}
+
+      {compressConfirm ? (
+        <Dialog open onOpenChange={(open) => (!open ? setCompressConfirm(null) : null)}>
+          <DialogContent showCloseButton={false} className="rounded-2xl p-6">
+            <DialogHeader className="gap-2">
+              <DialogTitle>图片超过大小限制</DialogTitle>
+              <DialogDescription className="text-sm leading-6">
+                选中的图片总大小为 {compressConfirm.totalSizeMb} MB，超过 {imageUploadMaxMb} MB 限制。是否压缩后上传？
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => void handleCompressConfirm(false)}>
+                取消
+              </Button>
+              <Button className="bg-stone-950 text-white hover:bg-stone-800" onClick={() => void handleCompressConfirm(true)}>
+                压缩并上传
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -328,7 +328,7 @@ export function RegisterCard() {
             </div>
         </div>
 
-        <div className="mt-4 flex min-h-[300px] flex-col space-y-3 overflow-hidden border-t border-stone-200 pt-4 xl:min-h-0 xl:flex-1">
+        <div className="mt-4 flex min-h-[300px] flex-col space-y-3 border-t border-stone-200 pt-4 xl:min-h-0 xl:flex-1 xl:overflow-hidden">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-stone-900">实时日志</h3>

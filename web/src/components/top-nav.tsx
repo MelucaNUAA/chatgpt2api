@@ -68,22 +68,26 @@ export function TopNav() {
     <header className="border-b border-stone-100/50">
       <div className="flex min-h-12 flex-col gap-1 px-3 py-2 sm:h-12 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-6 sm:py-0">
         <div className="flex items-center justify-between gap-2 sm:justify-start sm:gap-3">
-          <Link
-            href="/image"
-            className="shrink-0 py-1 text-[15px] font-bold tracking-tight text-stone-950 transition hover:text-stone-700"
-          >
-            chatgpt2api
-          </Link>
-          <a
-            href="https://github.com/basketikun/chatgpt2api"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 py-1 text-sm text-stone-400 transition hover:text-stone-700"
-            aria-label="GitHub repository"
-          >
-            <Github className="size-4" />
-            <span className="hidden md:inline">GitHub</span>
-          </a>
+          {session.role === "admin" && (
+            <>
+              <Link
+                href="/image"
+                className="shrink-0 py-1 text-[15px] font-bold tracking-tight text-stone-950 transition hover:text-stone-700"
+              >
+                chatgpt2api
+              </Link>
+              <a
+                href="https://github.com/basketikun/chatgpt2api"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 py-1 text-sm text-stone-400 transition hover:text-stone-700"
+                aria-label="GitHub repository"
+              >
+                <Github className="size-4" />
+                <span className="hidden md:inline">GitHub</span>
+              </a>
+            </>
+          )}
           <button
             type="button"
             className="ml-auto shrink-0 py-1 text-xs text-stone-400 transition hover:text-stone-700 sm:hidden"

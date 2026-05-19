@@ -15,6 +15,35 @@ from services.image_tags_service import load_tags, remove_tags
 THUMBNAIL_SIZE = (320, 320)
 
 
+def compress_image(data: bytes, max_mb: int = 5, *, quality: int = 85, max_dimension: int = 4096) -> bytes:
+    """压缩图片到指定大小限制以内。返回压缩后的 bytes，如果原始大小未超限则原样返回。"""
+    max_bytes = max_mb * 1024 * 1024
+    if len(data) <= max_bytes:
+        return data
+    try:
+        with Image.open(io.BytesIO(data)) as image:
+            image = ImageOps.exif_transpose(image)
+            if image.mode not in {"RGB", "RGBA"}:
+                image = image.convert("RGBA" if "A" in image.getbands() else "RGB")
+            w, h = image.size
+            if max(w, h) > max_dimension:
+                scale = max_dimension / max(w, h)
+                image = image.resize((int(w * scale), int(h * scale)), Image.Resampling.LANCZOS)
+            for q in (quality, 70, 50, 35):
+                buf = io.BytesIO()
+                image.save(buf, format="JPEG", quality=q, optimize=True)
+                if buf.tell() <= max_bytes:
+                    return buf.getvalue()
+            buf = io.BytesIO()
+            ratio = (max_bytes / buf.tell()) ** 0.5 if buf.tell() > 0 else 0.5
+            new_w, new_h = max(1, int(image.width * ratio)), max(1, int(image.height * ratio))
+            image = image.resize((new_w, new_h), Image.Resampling.LANCZOS)
+            image.save(buf, format="JPEG", quality=35, optimize=True)
+            return buf.getvalue()
+    except Exception:
+        return data
+
+
 def _cleanup_empty_dirs(root: Path) -> None:
     for path in sorted((p for p in root.rglob("*") if p.is_dir()), key=lambda p: len(p.parts), reverse=True):
         try:
