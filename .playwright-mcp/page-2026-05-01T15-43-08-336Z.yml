@@ -1,0 +1,165 @@
+- generic [ref=e1]:
+  - region "Notifications alt+T"
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - link "chatgpt2api" [ref=e7] [cursor=pointer]:
+            - /url: /image/
+          - link "GitHub repository" [ref=e8] [cursor=pointer]:
+            - /url: https://github.com/basketikun/chatgpt2api
+            - img [ref=e9]
+            - generic [ref=e12]: GitHub
+        - navigation [ref=e13]:
+          - link "画图" [ref=e14] [cursor=pointer]:
+            - /url: /image/
+          - link "号池管理" [ref=e15] [cursor=pointer]:
+            - /url: /accounts/
+          - link "注册机" [ref=e16] [cursor=pointer]:
+            - /url: /register/
+          - link "图片管理" [ref=e17] [cursor=pointer]:
+            - /url: /image-manager/
+          - link "日志管理" [ref=e18] [cursor=pointer]:
+            - /url: /logs/
+          - link "设置" [ref=e19] [cursor=pointer]:
+            - /url: /settings/
+            - text: 设置
+        - generic [ref=e21]:
+          - generic [ref=e22]: 管理员
+          - generic [ref=e23]: v1.1.4
+          - button "退出" [ref=e24]
+      - generic [ref=e26]:
+        - generic [ref=e27]: Settings
+        - heading "设置" [level=1] [ref=e28]
+      - generic [ref=e29]:
+        - generic [ref=e31]:
+          - generic [ref=e32]: 管理员登录密钥继续从部署配置读取，不再在此页面展示；如需分发给其他人，请在下方创建普通用户密钥。
+          - generic [ref=e33]:
+            - generic [ref=e34]:
+              - text: 账号刷新间隔
+              - textbox "分钟" [ref=e35]: "60"
+              - paragraph [ref=e36]: 单位分钟，控制账号自动刷新频率。
+            - generic [ref=e37]:
+              - text: 全局代理
+              - generic [ref=e38]:
+                - textbox "http://127.0.0.1:7890" [ref=e39]
+                - button "测试" [ref=e40]:
+                  - img
+                  - text: 测试
+              - paragraph [ref=e41]: 留空表示不使用代理。
+            - generic [ref=e42]:
+              - text: 图片访问地址
+              - textbox "https://example.com" [ref=e43]
+              - paragraph [ref=e44]: 用于生成图片结果的访问前缀地址。
+            - generic [ref=e45]:
+              - text: 图片自动清理
+              - textbox "30" [ref=e46]: "15"
+              - paragraph [ref=e47]: 自动删除多少天前的本地图片。
+            - generic [ref=e48]:
+              - text: 任务超时时间
+              - textbox "120" [ref=e49]: "360"
+              - paragraph [ref=e50]: 图片生成/编辑任务的最大执行时间，单位秒，最小 10。
+            - generic [ref=e51]:
+              - text: 上传文件大小限制
+              - textbox "5" [ref=e52]
+              - paragraph [ref=e53]: 单位 MB，超过此大小的图片将提示压缩。留空或填 0 表示不限制。
+            - generic [ref=e54]:
+              - text: 图片存储方式
+              - generic [ref=e55]:
+                - combobox [active] [ref=e56]:
+                  - option "本地存储" [selected]
+                  - option "WebDAV"
+                - img
+              - paragraph [ref=e57]: 切换存储方式后需重启服务生效。
+            - generic [ref=e58]:
+              - checkbox "自动移除异常账号" [checked] [ref=e59]:
+                - generic:
+                  - img
+              - text: 自动移除异常账号
+            - generic [ref=e60]:
+              - checkbox "自动移除限流账号" [ref=e61]
+              - text: 自动移除限流账号
+            - generic [ref=e62]:
+              - generic [ref=e63]:
+                - text: 控制台日志级别
+                - paragraph [ref=e64]: 不选择时使用默认 info / warning / error。
+              - generic [ref=e65]:
+                - generic [ref=e66]:
+                  - checkbox "debug" [checked] [ref=e67]:
+                    - generic:
+                      - img
+                  - text: debug
+                - generic [ref=e68]:
+                  - checkbox "info" [checked] [ref=e69]:
+                    - generic:
+                      - img
+                  - text: info
+                - generic [ref=e70]:
+                  - checkbox "warning" [checked] [ref=e71]:
+                    - generic:
+                      - img
+                  - text: warning
+                - generic [ref=e72]:
+                  - checkbox "error" [checked] [ref=e73]:
+                    - generic:
+                      - img
+                  - text: error
+          - button "保存" [ref=e75]:
+            - img
+            - text: 保存
+        - generic [ref=e77]:
+          - generic [ref=e78]:
+            - generic [ref=e79]:
+              - img [ref=e81]
+              - generic [ref=e84]:
+                - heading "用户密钥管理" [level=2] [ref=e85]
+                - paragraph [ref=e86]: 为普通用户创建专用密钥；普通用户只能进入画图页，不能查看设置和号池。
+            - button "创建用户密钥" [ref=e87]:
+              - img
+              - text: 创建用户密钥
+          - generic [ref=e88]: 暂无普通用户密钥。点击右上角按钮后即可创建并分发给其他人。
+        - generic [ref=e92]:
+          - generic [ref=e93]:
+            - generic [ref=e94]:
+              - img [ref=e96]
+              - generic [ref=e107]:
+                - heading "CPA 连接管理" [level=2] [ref=e108]
+                - paragraph [ref=e109]: 先配置连接，再按需查询远程账号并选择导入到本地号池。
+            - button "添加连接" [ref=e111]:
+              - img
+              - text: 添加连接
+          - generic [ref=e112]:
+            - img [ref=e154]
+            - generic [ref=e165]:
+              - paragraph [ref=e166]: 暂无 CPA 连接
+              - paragraph [ref=e167]: 点击「添加连接」保存你的 CLIProxyAPI 信息。
+          - generic [ref=e115]:
+            - paragraph [ref=e116]: 使用说明
+            - list [ref=e117]:
+              - listitem [ref=e118]: 页面进入后先读取系统里已配置的 CPA 连接。
+              - listitem [ref=e119]: 点击某个连接的「同步」后，会先读取远程账号列表并展示给前端选择。
+              - listitem [ref=e120]: 确认选择后，后端后台下载对应 access_token 并导入本地号池。
+              - listitem [ref=e121]: 前端只轮询导入进度，不直接参与 download。
+        - generic [ref=e123]:
+          - generic [ref=e124]:
+            - generic [ref=e125]:
+              - img [ref=e127]
+              - generic [ref=e138]:
+                - heading "Sub2API 连接管理" [level=2] [ref=e139]
+                - paragraph [ref=e140]: 配置 Sub2API 服务器后，可查询其中的 OpenAI OAuth 账号并批量导入本地号池。
+            - button "添加连接" [ref=e142]:
+              - img
+              - text: 添加连接
+          - generic [ref=e143]:
+            - img [ref=e168]
+            - generic [ref=e179]:
+              - paragraph [ref=e180]: 暂无 Sub2API 连接
+              - paragraph [ref=e181]: 点击「添加连接」保存你的 Sub2API 信息。
+          - generic [ref=e146]:
+            - paragraph [ref=e147]: 使用说明
+            - list [ref=e148]:
+              - listitem [ref=e149]: 输入 Sub2API 地址和管理员账户（或 Admin API Key），保存为一个连接。
+              - listitem [ref=e150]: 点击某个连接的「同步」会拉取其中 platform=openai 且 type=oauth 的账号列表。
+              - listitem [ref=e151]: 勾选需要的账号后后端会并发拉取 access_token，自动导入本地号池并刷新状态。
+              - listitem [ref=e152]: 仅会读取 sub2api 凭据中的 access_token；refresh_token 等字段不会写入本地。
+  - alert [ref=e153]

@@ -1,0 +1,162 @@
+- generic [active] [ref=e1]:
+  - region "Notifications alt+T"
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e25]:
+        - generic [ref=e26]:
+          - link "chatgpt2api" [ref=e27] [cursor=pointer]:
+            - /url: /image/
+          - link "GitHub repository" [ref=e28] [cursor=pointer]:
+            - /url: https://github.com/basketikun/chatgpt2api
+            - img [ref=e29]
+            - generic [ref=e32]: GitHub
+        - navigation [ref=e33]:
+          - link "画图" [ref=e34] [cursor=pointer]:
+            - /url: /image/
+          - link "号池管理" [ref=e35] [cursor=pointer]:
+            - /url: /accounts/
+          - link "注册机" [ref=e36] [cursor=pointer]:
+            - /url: /register/
+          - link "图片管理" [ref=e37] [cursor=pointer]:
+            - /url: /image-manager/
+          - link "日志管理" [ref=e38] [cursor=pointer]:
+            - /url: /logs/
+          - link "设置" [ref=e39] [cursor=pointer]:
+            - /url: /settings/
+        - generic [ref=e40]:
+          - generic [ref=e41]: 管理员
+          - generic [ref=e42]: v1.1.4
+          - button "退出" [ref=e43]
+      - generic [ref=e44]:
+        - generic [ref=e45]:
+          - generic [ref=e46]: Account Pool
+          - heading "号池管理" [level=1] [ref=e47]
+        - generic [ref=e48]:
+          - button "刷新" [ref=e49]:
+            - img
+            - text: 刷新
+          - button "一键刷新所有账号信息和额度" [ref=e50]:
+            - img
+            - text: 一键刷新所有账号信息和额度
+          - button "导入" [ref=e51]:
+            - img
+            - text: 导入
+          - button "导出全部 Token" [ref=e52]:
+            - img
+            - text: 导出全部 Token
+      - generic [ref=e54]:
+        - generic [ref=e56]:
+          - generic [ref=e57]:
+            - generic [ref=e58]: 账户总数
+            - img [ref=e59]
+          - generic [ref=e62]: "1"
+        - generic [ref=e64]:
+          - generic [ref=e65]:
+            - generic [ref=e66]: 正常账户
+            - img [ref=e67]
+          - generic [ref=e70]: "1"
+        - generic [ref=e72]:
+          - generic [ref=e73]:
+            - generic [ref=e74]: 限流账户
+            - img [ref=e75]
+          - generic [ref=e77]: "0"
+        - generic [ref=e79]:
+          - generic [ref=e80]:
+            - generic [ref=e81]: 异常账户
+            - img [ref=e82]
+          - generic [ref=e86]: "0"
+        - generic [ref=e88]:
+          - generic [ref=e89]:
+            - generic [ref=e90]: 禁用账户
+            - img [ref=e91]
+          - generic [ref=e94]: "0"
+        - generic [ref=e96]:
+          - generic [ref=e97]:
+            - generic [ref=e98]: 剩余额度
+            - img [ref=e99]
+          - generic [ref=e104]: "19"
+      - generic [ref=e105]:
+        - generic [ref=e106]:
+          - generic [ref=e107]:
+            - heading "账户列表" [level=2] [ref=e108]
+            - generic [ref=e109]: "1"
+          - generic [ref=e110]:
+            - generic [ref=e111]:
+              - img
+              - textbox "搜索邮箱" [ref=e112]
+            - combobox [ref=e113]:
+              - generic: 全部类型
+              - img [ref=e114]
+            - combobox [ref=e116]:
+              - generic: 全部状态
+              - img [ref=e117]
+        - generic [ref=e120]:
+          - generic [ref=e122]:
+            - button "刷新选中账号信息和额度" [disabled]:
+              - img
+              - text: 刷新选中账号信息和额度
+            - button "移除异常账号" [disabled]:
+              - img
+              - text: 移除异常账号
+            - button "删除所选" [disabled]:
+              - img
+              - text: 删除所选
+          - table [ref=e124]:
+            - rowgroup [ref=e125]:
+              - row "token 类型 状态 账号信息 额度 恢复时间 成功 失败 操作" [ref=e126]:
+                - columnheader [ref=e127]:
+                  - checkbox [ref=e128]
+                - columnheader "token" [ref=e129]
+                - columnheader "类型" [ref=e130]
+                - columnheader "状态" [ref=e131]
+                - columnheader "账号信息" [ref=e132]
+                - columnheader "额度" [ref=e133]
+                - columnheader "恢复时间" [ref=e134]
+                - columnheader "成功" [ref=e135]
+                - columnheader "失败" [ref=e136]
+                - columnheader "操作" [ref=e137]
+            - rowgroup [ref=e138]:
+              - row "eyJhbGciOiJSUzI1...v31ApWWY Free 正常 dorthea7479a6@r1.26ai.org 19 剩余 0d 20h 2026-05-02 19:04:41 5 2" [ref=e139]:
+                - cell [ref=e140]:
+                  - checkbox [ref=e141]
+                - cell "eyJhbGciOiJSUzI1...v31ApWWY" [ref=e142]:
+                  - generic [ref=e143]:
+                    - generic [ref=e144]: eyJhbGciOiJSUzI1...v31ApWWY
+                    - button [ref=e145]:
+                      - img [ref=e146]
+                - cell "Free" [ref=e149]:
+                  - generic [ref=e150]: Free
+                - cell "正常" [ref=e151]:
+                  - generic [ref=e152]:
+                    - img [ref=e153]
+                    - text: 正常
+                - cell "dorthea7479a6@r1.26ai.org" [ref=e156]:
+                  - generic [ref=e157]: dorthea7479a6@r1.26ai.org
+                - cell "19" [ref=e158]:
+                  - generic [ref=e159]: "19"
+                - cell "剩余 0d 20h 2026-05-02 19:04:41" [ref=e160]:
+                  - generic [ref=e161]:
+                    - generic [ref=e162]: 剩余 0d 20h
+                    - generic [ref=e163]: 2026-05-02 19:04:41
+                - cell "5" [ref=e164]
+                - cell "2" [ref=e165]
+                - cell [ref=e166]:
+                  - generic [ref=e167]:
+                    - button [ref=e168]:
+                      - img [ref=e169]
+                    - button [ref=e172]:
+                      - img [ref=e173]
+                    - button [ref=e178]:
+                      - img [ref=e179]
+          - generic [ref=e183]:
+            - generic [ref=e184]: 显示第 1 - 1 条，共 1 条
+            - generic [ref=e185]: 1 / 1 页
+            - combobox [ref=e186]:
+              - generic: 10 / 页
+              - img [ref=e187]
+            - button [disabled]:
+              - img
+            - button "1" [ref=e189]
+            - button [disabled]:
+              - img
+  - alert [ref=e7]

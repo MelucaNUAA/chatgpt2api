@@ -1,0 +1,83 @@
+- generic [active] [ref=e1]:
+  - region "Notifications alt+T"
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - link "chatgpt2api" [ref=e7] [cursor=pointer]:
+            - /url: /image/
+          - link "GitHub repository" [ref=e8] [cursor=pointer]:
+            - /url: https://github.com/basketikun/chatgpt2api
+            - img [ref=e9]
+            - generic [ref=e12]: GitHub
+        - navigation [ref=e13]:
+          - link "画图" [ref=e14] [cursor=pointer]:
+            - /url: /image/
+          - link "号池管理" [ref=e15] [cursor=pointer]:
+            - /url: /accounts/
+          - link "注册机" [ref=e16] [cursor=pointer]:
+            - /url: /register/
+          - link "图片管理" [ref=e17] [cursor=pointer]:
+            - /url: /image-manager/
+          - link "日志管理" [ref=e18] [cursor=pointer]:
+            - /url: /logs/
+          - link "设置" [ref=e19] [cursor=pointer]:
+            - /url: /settings/
+            - text: 设置
+        - generic [ref=e21]:
+          - generic [ref=e22]: 管理员
+          - generic [ref=e23]: v1.1.4
+          - button "退出" [ref=e24]
+      - generic [ref=e26]:
+        - generic [ref=e27]: Settings
+        - heading "设置" [level=1] [ref=e28]
+      - generic [ref=e29]:
+        - img [ref=e32]
+        - generic [ref=e35]:
+          - generic [ref=e36]:
+            - generic [ref=e37]:
+              - img [ref=e39]
+              - generic [ref=e42]:
+                - heading "用户密钥管理" [level=2] [ref=e43]
+                - paragraph [ref=e44]: 为普通用户创建专用密钥；普通用户只能进入画图页，不能查看设置和号池。
+            - button "创建用户密钥" [ref=e45]:
+              - img
+              - text: 创建用户密钥
+          - img [ref=e47]
+        - generic [ref=e50]:
+          - generic [ref=e51]:
+            - generic [ref=e52]:
+              - img [ref=e54]
+              - generic [ref=e65]:
+                - heading "CPA 连接管理" [level=2] [ref=e66]
+                - paragraph [ref=e67]: 先配置连接，再按需查询远程账号并选择导入到本地号池。
+            - button "添加连接" [ref=e69]:
+              - img
+              - text: 添加连接
+          - img [ref=e71]
+          - generic [ref=e73]:
+            - paragraph [ref=e74]: 使用说明
+            - list [ref=e75]:
+              - listitem [ref=e76]: 页面进入后先读取系统里已配置的 CPA 连接。
+              - listitem [ref=e77]: 点击某个连接的「同步」后，会先读取远程账号列表并展示给前端选择。
+              - listitem [ref=e78]: 确认选择后，后端后台下载对应 access_token 并导入本地号池。
+              - listitem [ref=e79]: 前端只轮询导入进度，不直接参与 download。
+        - generic [ref=e81]:
+          - generic [ref=e82]:
+            - generic [ref=e83]:
+              - img [ref=e85]
+              - generic [ref=e96]:
+                - heading "Sub2API 连接管理" [level=2] [ref=e97]
+                - paragraph [ref=e98]: 配置 Sub2API 服务器后，可查询其中的 OpenAI OAuth 账号并批量导入本地号池。
+            - button "添加连接" [ref=e100]:
+              - img
+              - text: 添加连接
+          - img [ref=e102]
+          - generic [ref=e104]:
+            - paragraph [ref=e105]: 使用说明
+            - list [ref=e106]:
+              - listitem [ref=e107]: 输入 Sub2API 地址和管理员账户（或 Admin API Key），保存为一个连接。
+              - listitem [ref=e108]: 点击某个连接的「同步」会拉取其中 platform=openai 且 type=oauth 的账号列表。
+              - listitem [ref=e109]: 勾选需要的账号后后端会并发拉取 access_token，自动导入本地号池并刷新状态。
+              - listitem [ref=e110]: 仅会读取 sub2api 凭据中的 access_token；refresh_token 等字段不会写入本地。
+  - alert [ref=e111]

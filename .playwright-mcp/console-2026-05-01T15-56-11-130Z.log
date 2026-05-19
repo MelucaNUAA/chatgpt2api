@@ -1,0 +1,6 @@
+[     651ms] [ERROR] Failed to load resource: the server responded with a status of 405 (Method Not Allowed) @ http://localhost:3001/settings/:0
+[     655ms] [ERROR] Failed to load resource: the server responded with a status of 405 (Method Not Allowed) @ http://localhost:3001/logs/:0
+[     662ms] [ERROR] Failed to load resource: the server responded with a status of 405 (Method Not Allowed) @ http://localhost:3001/image-manager/:0
+[     662ms] [ERROR] Failed to load resource: the server responded with a status of 405 (Method Not Allowed) @ http://localhost:3001/register/:0
+[     672ms] [ERROR] Failed to load resource: the server responded with a status of 405 (Method Not Allowed) @ http://localhost:3001/accounts/:0
+[     674ms] [ERROR] Failed to load resource: the server responded with a status of 405 (Method Not Allowed) @ http://localhost:3001/image/:0

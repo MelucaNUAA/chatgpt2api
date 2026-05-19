@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from api import accounts, ai, image_tasks, register, system
+from api.errors import install_exception_handlers
 from api.support import resolve_web_asset, start_limited_account_watcher
 from services.backup_service import backup_service
 from services.config import config
@@ -31,6 +32,7 @@ def create_app() -> FastAPI:
             backup_service.stop()
 
     app = FastAPI(title="chatgpt2api", version=app_version, lifespan=lifespan)
+    install_exception_handlers(app)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -43,8 +45,6 @@ def create_app() -> FastAPI:
     app.include_router(image_tasks.create_router())
     app.include_router(register.create_router())
     app.include_router(system.create_router(app_version))
-    if config.images_dir.exists():
-        app.mount("/images", StaticFiles(directory=str(config.images_dir)), name="images")
     if config.guest_images_dir.exists():
         app.mount("/guest-images", StaticFiles(directory=str(config.guest_images_dir)), name="guest-images")
 
