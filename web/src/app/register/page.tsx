@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { LoaderCircle } from "lucide-react";
 
 import webConfig from "@/constants/common-env";
-import { useAuthGuard } from "@/lib/use-auth-guard";
+import { useAuthGuard } from "@/lib/auth-provider";
 import type { RegisterConfig } from "@/lib/api";
 import { getStoredAuthKey } from "@/store/auth";
 

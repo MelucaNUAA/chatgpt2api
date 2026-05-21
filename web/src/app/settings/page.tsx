@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { LoaderCircle } from "lucide-react";
 
-import { useAuthGuard } from "@/lib/use-auth-guard";
+import { useAuthGuard } from "@/lib/auth-provider";
 
 import { BackupSettingsCard } from "./components/backup-settings-card";
 import { ConfigCard } from "./components/config-card";

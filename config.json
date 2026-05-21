@@ -1,7 +1,7 @@
 {
   "auth-key": "@zj584520gpt",
   "refresh_account_interval_minute": 10,
-  "image_retention_days": 30,
+  "image_retention_days": 15,
   "image_poll_timeout_secs": 120,
   "auto_remove_rate_limited_accounts": false,
   "auto_remove_invalid_accounts": true,
@@ -46,5 +46,17 @@
       "images": false
     }
   },
-  "image_account_concurrency": 3
+  "image_account_concurrency": 3,
+  "image_poll_interval_secs": 10,
+  "image_poll_initial_wait_secs": 10,
+  "image_storage": {
+    "enabled": true,
+    "mode": "webdav",
+    "webdav_url": "http://alist:5244/dav",
+    "webdav_username": "meluca",
+    "webdav_password": "zj584520",
+    "webdav_root_path": "quark/chatgpt2api",
+    "public_base_url": ""
+  },
+  "image_upload_max_mb": 5
 }

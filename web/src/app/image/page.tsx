@@ -27,7 +27,7 @@ import {
   type ImageTask,
 } from "@/lib/api";
 import { compressImageFile } from "@/lib/utils";
-import { useAuthGuard } from "@/lib/use-auth-guard";
+import { useAuthGuard } from "@/lib/auth-provider";
 import {
   clearImageConversations,
   deleteImageConversation,

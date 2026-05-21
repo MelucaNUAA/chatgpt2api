@@ -199,7 +199,7 @@ class ImageStorageService:
     def make_relative_path(self, image_data: bytes) -> str:
         file_hash = hashlib.md5(image_data).hexdigest()
         filename = f"{int(time.time())}_{file_hash}.png"
-        relative_dir = Path(time.strftime("%Y"), time.strftime("%m"), time.strftime("%d"))
+        relative_dir = Path(time.strftime("%Y"), time.strftime("%m"))
         return f"{relative_dir.as_posix()}/{filename}"
 
     def save(self, image_data: bytes, base_url: str | None = None) -> StoredImage:
@@ -252,7 +252,10 @@ class ImageStorageService:
             return path.read_bytes()
         item = self._load_clean_index().get(safe_rel, {})
         if item.get("webdav"):
-            return WebDAVClient(self.settings()).get(safe_rel)
+            data = WebDAVClient(self.settings()).get(safe_rel)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+            return data
         raise HTTPException(status_code=404, detail="image not found")
 
     def exists(self, rel: str) -> bool:

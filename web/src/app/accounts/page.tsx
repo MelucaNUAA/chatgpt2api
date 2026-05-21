@@ -50,7 +50,7 @@ import {
   type AccountExportFormat,
   type AccountStatus,
 } from "@/lib/api";
-import { useAuthGuard } from "@/lib/use-auth-guard";
+import { useAuthGuard } from "@/lib/auth-provider";
 import { cn } from "@/lib/utils";
 
 import { AccountImportDialog } from "./components/account-import-dialog";
