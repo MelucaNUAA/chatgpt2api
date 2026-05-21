@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { login } from "@/lib/api";
 import { useRedirectIfAuthenticated } from "@/lib/use-auth-guard";
+import { invalidateAuthCache } from "@/lib/auth-session";
 import { getDefaultRouteForRole, setStoredAuthSession } from "@/store/auth";
 
 export default function LoginPage() {
@@ -35,6 +36,7 @@ export default function LoginPage() {
         subjectId: data.subject_id,
         name: data.name,
       });
+      invalidateAuthCache();
       if (data.role === "user" && data.image_retention_hours) {
         toast.info(`您生成的图片将在 ${data.image_retention_hours} 小时后自动清理，请及时保存`, { duration: 6000 });
       }

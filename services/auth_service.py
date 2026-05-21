@@ -255,7 +255,6 @@ class AuthService:
 
     def check_image_quota(self, key_id: str, count: int) -> None:
         with self._lock:
-            self._reload_locked()
             for item in self._items:
                 if item.get("id") != key_id:
                     continue
@@ -269,7 +268,6 @@ class AuthService:
 
     def consume_image_quota(self, key_id: str, count: int) -> None:
         with self._lock:
-            self._reload_locked()
             for index, item in enumerate(self._items):
                 if item.get("id") != key_id:
                     continue

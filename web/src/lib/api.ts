@@ -292,8 +292,8 @@ export async function login(authKey: string) {
   });
 }
 
-export async function fetchAccounts() {
-  return httpRequest<AccountListResponse>("/api/accounts");
+export async function fetchAccounts(signal?: AbortSignal) {
+  return httpRequest<AccountListResponse>("/api/accounts", { signal });
 }
 
 export async function createAccounts(tokens: string[], accounts: AccountImportPayload[] = []) {
@@ -514,12 +514,13 @@ export function getBackupDownloadUrl(key: string) {
   return `/api/backups/download?${params.toString()}`;
 }
 
-export async function fetchManagedImages(filters: { start_date?: string; end_date?: string }) {
+export async function fetchManagedImages(filters: { start_date?: string; end_date?: string; signal?: AbortSignal }) {
   const params = new URLSearchParams();
   if (filters.start_date) params.set("start_date", filters.start_date);
   if (filters.end_date) params.set("end_date", filters.end_date);
   return httpRequest<{ items: ManagedImage[]; groups: Array<{ date: string; items: ManagedImage[] }> }>(
     `/api/images${params.toString() ? `?${params.toString()}` : ""}`,
+    { signal: filters.signal },
   );
 }
 
@@ -553,8 +554,8 @@ export async function downloadSingleImage(path: string) {
   URL.revokeObjectURL(url);
 }
 
-export async function fetchImageTags() {
-  return httpRequest<{ tags: string[] }>("/api/images/tags");
+export async function fetchImageTags(signal?: AbortSignal) {
+  return httpRequest<{ tags: string[] }>("/api/images/tags", { signal });
 }
 
 export async function setImageTags(path: string, tags: string[]) {
@@ -570,12 +571,12 @@ export async function deleteImageTag(tag: string) {
   });
 }
 
-export async function fetchSystemLogs(filters: { type?: string; start_date?: string; end_date?: string }) {
+export async function fetchSystemLogs(filters: { type?: string; start_date?: string; end_date?: string; signal?: AbortSignal }) {
   const params = new URLSearchParams();
   if (filters.type) params.set("type", filters.type);
   if (filters.start_date) params.set("start_date", filters.start_date);
   if (filters.end_date) params.set("end_date", filters.end_date);
-  return httpRequest<{ items: SystemLog[] }>(`/api/logs${params.toString() ? `?${params.toString()}` : ""}`);
+  return httpRequest<{ items: SystemLog[] }>(`/api/logs${params.toString() ? `?${params.toString()}` : ""}`, { signal: filters.signal });
 }
 
 export async function deleteSystemLogs(ids: string[]) {

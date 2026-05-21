@@ -3,6 +3,22 @@
 import { create } from "zustand";
 import { toast } from "sonner";
 
+// 文本输入防抖：避免每次按键都创建新 config 对象导致全量 re-render
+const _debounceTimers: Record<string, ReturnType<typeof setTimeout>> = {};
+function debouncedConfigUpdate(
+  set: (fn: (state: { config: SettingsConfig | null }) => Partial<{ config: SettingsConfig | null }>) => void,
+  field: string,
+  value: string,
+) {
+  if (_debounceTimers[field]) clearTimeout(_debounceTimers[field]);
+  _debounceTimers[field] = setTimeout(() => {
+    set((state) => {
+      if (!state.config) return {};
+      return { config: { ...state.config, [field]: value } };
+    });
+  }, 300);
+}
+
 import {
   createCPAPool,
   deleteBackup,
@@ -392,33 +408,23 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   },
 
   setRefreshAccountIntervalMinute: (value) => {
-    set((state) => {
-      if (!state.config) {
-        return {};
-      }
-      return {
-        config: {
-          ...state.config,
-          refresh_account_interval_minute: value,
-        },
-      };
-    });
+    debouncedConfigUpdate(set, "refresh_account_interval_minute", value);
   },
 
   setImageRetentionDays: (value) => {
-    set((state) => state.config ? { config: { ...state.config, image_retention_days: value } } : {});
+    debouncedConfigUpdate(set, "image_retention_days", value);
   },
 
   setImagePollTimeoutSecs: (value) => {
-    set((state) => state.config ? { config: { ...state.config, image_poll_timeout_secs: value } } : {});
+    debouncedConfigUpdate(set, "image_poll_timeout_secs", value);
   },
 
   setImageAccountConcurrency: (value) => {
-    set((state) => state.config ? { config: { ...state.config, image_account_concurrency: value } } : {});
+    debouncedConfigUpdate(set, "image_account_concurrency", value);
   },
 
   setImageUploadMaxMb: (value) => {
-    set((state) => state.config ? { config: { ...state.config, image_upload_max_mb: value } } : {});
+    debouncedConfigUpdate(set, "image_upload_max_mb", value);
   },
 
   setAutoRemoveInvalidAccounts: (value) => {
@@ -440,38 +446,19 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   },
 
   setProxy: (value) => {
-    set((state) => {
-      if (!state.config) {
-        return {};
-      }
-      return {
-        config: {
-          ...state.config,
-          proxy: value,
-        },
-      };
-    });
+    debouncedConfigUpdate(set, "proxy", value);
   },
 
   setBaseUrl: (value) => {
-    set((state) => {
-      if (!state.config) {
-        return {};
-      }
-      return {
-        config: {
-          ...state.config,
-          base_url: value,
-        },
-      };
-    });
+    debouncedConfigUpdate(set, "base_url", value);
   },
 
   setGlobalSystemPrompt: (value) => {
-    set((state) => state.config ? { config: { ...state.config, global_system_prompt: value } } : {});
+    debouncedConfigUpdate(set, "global_system_prompt", value);
   },
 
   setSensitiveWordsText: (value) => {
+    // 这里不做防抖，因为敏感词是 textarea 整体更新
     set((state) => state.config ? { config: { ...state.config, sensitive_words: value.split("\n") } } : {});
   },
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import time
 import zipfile
 from pathlib import Path
 
@@ -13,6 +14,10 @@ from services.image_storage_service import image_storage_service
 from services.image_tags_service import load_tags, remove_tags
 
 THUMBNAIL_SIZE = (320, 320)
+
+# 图片清理节流：最多每 600 秒执行一次
+_last_cleanup_ts: float = 0.0
+_CLEANUP_INTERVAL = 600.0
 
 
 def compress_image(data: bytes, max_mb: int = 5, *, quality: int = 85, max_dimension: int = 4096) -> bytes:
@@ -154,8 +159,12 @@ def cleanup_image_thumbnails() -> int:
     return removed
 
 def list_images(base_url: str, start_date: str = "", end_date: str = "") -> dict[str, object]:
-    config.cleanup_old_images()
-    cleanup_image_thumbnails()
+    global _last_cleanup_ts
+    now = time.monotonic()
+    if now - _last_cleanup_ts > _CLEANUP_INTERVAL:
+        _last_cleanup_ts = now
+        config.cleanup_old_images()
+        cleanup_image_thumbnails()
     all_tags = load_tags()
     items = [
         {

@@ -1,14 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-import { getValidatedAuthSession } from "@/lib/auth-session";
-import {
-  getDefaultRouteForRole,
-  type AuthRole,
-  type StoredAuthSession,
-} from "@/store/auth";
+import { useAuth } from "@/lib/auth-provider";
+import { getDefaultRouteForRole, type AuthRole, type StoredAuthSession } from "@/store/auth";
 
 type UseAuthGuardResult = {
   isCheckingAuth: boolean;
@@ -16,74 +12,38 @@ type UseAuthGuardResult = {
 };
 
 export function useAuthGuard(allowedRoles?: AuthRole[]): UseAuthGuardResult {
+  const { session, isLoading } = useAuth();
   const router = useRouter();
-  const [session, setSession] = useState<StoredAuthSession | null>(null);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const allowedRolesKey = (allowedRoles || []).join(",");
+
+  const allowedRoleList = allowedRoles || [];
 
   useEffect(() => {
-    let active = true;
+    if (isLoading) return;
 
-    const load = async () => {
-      const roleList = allowedRolesKey ? (allowedRolesKey.split(",") as AuthRole[]) : [];
-      const storedSession = await getValidatedAuthSession();
-      if (!active) {
-        return;
-      }
+    if (!session) {
+      router.replace("/login");
+      return;
+    }
 
-      if (!storedSession) {
-        setSession(null);
-        setIsCheckingAuth(false);
-        router.replace("/login");
-        return;
-      }
+    if (allowedRoleList.length > 0 && !allowedRoleList.includes(session.role)) {
+      router.replace(getDefaultRouteForRole(session.role));
+    }
+  }, [session, isLoading, router, allowedRoleList.join(",")]);
 
-      if (roleList.length > 0 && !roleList.includes(storedSession.role)) {
-        setSession(storedSession);
-        setIsCheckingAuth(false);
-        router.replace(getDefaultRouteForRole(storedSession.role));
-        return;
-      }
-
-      setSession(storedSession);
-      setIsCheckingAuth(false);
-    };
-
-    void load();
-    return () => {
-      active = false;
-    };
-  }, [allowedRolesKey, router]);
-
-  return { isCheckingAuth, session };
+  return { isCheckingAuth: isLoading, session };
 }
 
 export function useRedirectIfAuthenticated() {
+  const { session, isLoading } = useAuth();
   const router = useRouter();
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
-    let active = true;
+    if (isLoading) return;
 
-    const load = async () => {
-      const storedSession = await getValidatedAuthSession();
-      if (!active) {
-        return;
-      }
+    if (session) {
+      router.replace(getDefaultRouteForRole(session.role));
+    }
+  }, [session, isLoading, router]);
 
-      if (storedSession) {
-        router.replace(getDefaultRouteForRole(storedSession.role));
-        return;
-      }
-
-      setIsCheckingAuth(false);
-    };
-
-    void load();
-    return () => {
-      active = false;
-    };
-  }, [router]);
-
-  return { isCheckingAuth };
+  return { isCheckingAuth: isLoading };
 }

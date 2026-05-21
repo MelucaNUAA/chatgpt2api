@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from threading import Condition, Lock
@@ -60,6 +61,8 @@ class AccountService:
         self._index = 0
         self._accounts = self._load_accounts()
         self._image_inflight: dict[str, int] = {}
+        self._dirty = False
+        self._last_flush_at: float = time.monotonic()
 
     def _load_accounts(self) -> dict[str, dict]:
         accounts = self.storage.load_accounts()
@@ -71,6 +74,20 @@ class AccountService:
 
     def _save_accounts(self) -> None:
         self.storage.save_accounts(list(self._accounts.values()))
+        self._dirty = False
+        self._last_flush_at = time.monotonic()
+
+    def _mark_dirty_and_maybe_flush(self) -> None:
+        """标记为脏数据，如果距上次写入超过 30 秒则立即 flush。"""
+        self._dirty = True
+        if time.monotonic() - self._last_flush_at >= 30:
+            self._save_accounts()
+
+    def flush_if_dirty(self) -> None:
+        """外部调用：如果有脏数据则立即写入（用于优雅关闭等场景）。"""
+        with self._lock:
+            if self._dirty:
+                self._save_accounts()
 
     @staticmethod
     def _is_image_account_available(account: dict) -> bool:
@@ -194,7 +211,7 @@ class AccountService:
             if account is None:
                 return
             self._accounts[access_token] = account
-            self._save_accounts()
+            self._mark_dirty_and_maybe_flush()
 
     def remove_invalid_token(self, access_token: str, event: str) -> bool:
         if not config.auto_remove_invalid_accounts:

@@ -44,6 +44,11 @@ DEFAULT_CLIENT_BUILD_NUMBER = "5955942"
 DEFAULT_POW_SCRIPT = "https://chatgpt.com/backend-api/sentinel/sdk.js"
 CODEX_IMAGE_MODEL = "codex-gpt-image-2"
 
+# _bootstrap() 结果的模块级缓存
+_bootstrap_cache: dict[str, object] = {"sources": None, "build": None, "ts": 0.0}
+_bootstrap_lock = __import__("threading").Lock()
+BOOTSTRAP_TTL = 600  # 10 分钟
+
 
 class OpenAIBackendAPI:
     """ChatGPT Web 后端封装。
@@ -859,12 +864,18 @@ class OpenAIBackendAPI:
         return self._resolve_image_urls(conversation_id, file_ids, sediment_ids)
 
     def download_image_bytes(self, urls: list[str]) -> list[bytes]:
-        images = []
-        for url in urls:
-            response = self.session.get(url, timeout=120)
+        if len(urls) <= 1:
+            response = self.session.get(urls[0], timeout=120)
             ensure_ok(response, "image_download")
-            images.append(response.content)
-        return images
+            return [response.content]
+
+        def _download(url: str) -> bytes:
+            resp = self.session.get(url, timeout=120)
+            ensure_ok(resp, "image_download")
+            return resp.content
+
+        with ThreadPoolExecutor(max_workers=min(len(urls), 4)) as executor:
+            return list(executor.map(_download, urls))
 
     def stream_conversation(
             self,
@@ -916,16 +927,37 @@ class OpenAIBackendAPI:
             response.close()
 
     def _bootstrap(self) -> None:
-        """预热首页，并提取 PoW 相关脚本引用。"""
-        response = self.session.get(
-            self.base_url + "/",
-            headers=self._bootstrap_headers(),
-            timeout=30,
-        )
-        ensure_ok(response, "bootstrap")
-        self.pow_script_sources, self.pow_data_build = parse_pow_resources(response.text)
-        if not self.pow_script_sources:
-            self.pow_script_sources = [DEFAULT_POW_SCRIPT]
+        """预热首页，并提取 PoW 相关脚本引用（带模块级缓存）。"""
+        now = time.monotonic()
+        cached_sources = _bootstrap_cache["sources"]
+        if cached_sources is not None and now - _bootstrap_cache["ts"] < BOOTSTRAP_TTL:
+            self.pow_script_sources = cached_sources  # type: ignore[assignment]
+            self.pow_data_build = str(_bootstrap_cache["build"] or "")
+            return
+
+        with _bootstrap_lock:
+            # double-check
+            cached_sources = _bootstrap_cache["sources"]
+            if cached_sources is not None and time.monotonic() - _bootstrap_cache["ts"] < BOOTSTRAP_TTL:
+                self.pow_script_sources = cached_sources  # type: ignore[assignment]
+                self.pow_data_build = str(_bootstrap_cache["build"] or "")
+                return
+
+            response = self.session.get(
+                self.base_url + "/",
+                headers=self._bootstrap_headers(),
+                timeout=30,
+            )
+            ensure_ok(response, "bootstrap")
+            sources, build = parse_pow_resources(response.text)
+            if not sources:
+                sources = [DEFAULT_POW_SCRIPT]
+            _bootstrap_cache["sources"] = sources
+            _bootstrap_cache["build"] = build
+            _bootstrap_cache["ts"] = time.monotonic()
+
+        self.pow_script_sources = _bootstrap_cache["sources"]  # type: ignore[assignment]
+        self.pow_data_build = str(_bootstrap_cache["build"] or "")
 
     def _get_chat_requirements(self) -> ChatRequirements:
         """获取当前模式对话所需的 sentinel token。"""

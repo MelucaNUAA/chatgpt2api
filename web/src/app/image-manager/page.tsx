@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { deleteImageTag, deleteManagedImages, downloadImages, downloadSingleImage, fetchImageTags, fetchManagedImages, setImageTags, type ManagedImage } from "@/lib/api";
-import { useAuthGuard } from "@/lib/use-auth-guard";
+import { useAuthGuard } from "@/lib/auth-provider";
 
 const LONG_PRESS_MS = 800;
 
@@ -105,18 +105,19 @@ function ImageManagerContent() {
   const currentPageSelected = currentRows.length > 0 && currentRows.every((item) => selectedSet.has(imageKey(item)));
   const allSelected = filteredItems.length > 0 && filteredItems.every((item) => selectedSet.has(imageKey(item)));
 
-  const loadImages = async () => {
+  const loadImages = async (signal?: AbortSignal) => {
     setIsLoading(true);
     try {
       const [data, tagsData] = await Promise.all([
-        fetchManagedImages({ start_date: startDate, end_date: endDate }),
-        fetchImageTags(),
+        fetchManagedImages({ start_date: startDate, end_date: endDate, signal }),
+        fetchImageTags(signal),
       ]);
       setItems(data.items);
       setAllTags(tagsData.tags);
       setSelectedPaths((current) => current.filter((path) => data.items.some((item) => imageKey(item) === path)));
       setPage(1);
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
       toast.error(error instanceof Error ? error.message : "加载图片失败");
     } finally {
       setIsLoading(false);
@@ -262,7 +263,9 @@ function ImageManagerContent() {
   };
 
   useEffect(() => {
-    void loadImages();
+    const controller = new AbortController();
+    void loadImages(controller.signal);
+    return () => controller.abort();
   }, [startDate, endDate]);
 
   return (

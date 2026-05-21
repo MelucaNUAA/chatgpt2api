@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Cloud, LoaderCircle, PlugZap, Plus, RefreshCw, Save } from "lucide-react";
+import { Check, Cloud, LoaderCircle, PlugZap, Plus, RefreshCw, Save, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
