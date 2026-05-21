@@ -260,27 +260,6 @@ export async function renameImageConversation(id: string, title: string): Promis
   });
 }
 
-export async function deleteImageConversation(id: string): Promise<void> {
-  await queueImageConversationWrite(async () => {
-    const items = await readStoredImageConversations();
-    const target = items.find((item) => item.id === id);
-    if (target) {
-      revokeObjectUrls(collectImageIds(target));
-    }
-    await imageConversationStorage.setItem(
-      IMAGE_CONVERSATIONS_KEY,
-      items.filter((item) => item.id !== id),
-    );
-  });
-}
-
-export async function clearImageConversations(): Promise<void> {
-  await queueImageConversationWrite(async () => {
-    revokeAllObjectUrls();
-    await imageConversationStorage.removeItem(IMAGE_CONVERSATIONS_KEY);
-  });
-}
-
 // ---------------------------------------------------------------------------
 // Object URL cache — avoids holding full base64 strings in React state / DOM
 // ---------------------------------------------------------------------------
@@ -332,6 +311,27 @@ export function revokeAllObjectUrls(): void {
  */
 function collectImageIds(conversation: ImageConversation): string[] {
   return conversation.turns.flatMap((turn) => turn.images.map((image) => image.id));
+}
+
+export async function deleteImageConversation(id: string): Promise<void> {
+  await queueImageConversationWrite(async () => {
+    const items = await readStoredImageConversations();
+    const target = items.find((item) => item.id === id);
+    if (target) {
+      revokeObjectUrls(collectImageIds(target));
+    }
+    await imageConversationStorage.setItem(
+      IMAGE_CONVERSATIONS_KEY,
+      items.filter((item) => item.id !== id),
+    );
+  });
+}
+
+export async function clearImageConversations(): Promise<void> {
+  await queueImageConversationWrite(async () => {
+    revokeAllObjectUrls();
+    await imageConversationStorage.removeItem(IMAGE_CONVERSATIONS_KEY);
+  });
 }
 
 export function getImageConversationStats(conversation: ImageConversation | null): ImageConversationStats {
