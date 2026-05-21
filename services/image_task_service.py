@@ -116,7 +116,7 @@ class ImageTaskService:
             "model": model,
             "n": 1,
             "size": size,
-            "response_format": "url",
+            "response_format": "b64_json",
             "base_url": base_url,
             "owner_role": str(identity.get("role") or ""),
         }
@@ -139,7 +139,7 @@ class ImageTaskService:
             "model": model,
             "n": 1,
             "size": size,
-            "response_format": "url",
+            "response_format": "b64_json",
             "base_url": base_url,
             "owner_role": str(identity.get("role") or ""),
         }
