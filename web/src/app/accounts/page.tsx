@@ -362,6 +362,7 @@ function AccountsPageContent() {
   const safePage = Math.min(page, pageCount);
   const startIndex = (safePage - 1) * Number(pageSize);
   const currentRows = filteredAccounts.slice(startIndex, startIndex + Number(pageSize));
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const allCurrentSelected =
     currentRows.length > 0 && currentRows.every((row) => selectedSet.has(row.access_token));
 
@@ -499,8 +500,6 @@ function AccountsPageContent() {
       setIsExporting(false);
     }
   };
-
-  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
   const toggleSelectAll = (checked: boolean) => {
     if (checked) {
