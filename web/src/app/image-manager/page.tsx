@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, Copy, Download, ImageIcon, LoaderCircle, Maximize2, Plus, RefreshCw, Search, Tag, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -66,6 +66,191 @@ function useLongPress(onLongPress: () => void, ms = LONG_PRESS_MS) {
   };
 }
 
+interface ImageRowProps {
+  item: ManagedImage;
+  imageIndex: number;
+  isSelected: boolean;
+  allTags: string[];
+  tagEditTargetRel: string | null;
+  tagInput: string;
+  onTagInputChange: (value: string) => void;
+  onTagEditOpenChange: (item: ManagedImage | null) => void;
+  onLightboxOpen: (index: number) => void;
+  onOpenDeleteDialog: (item: ManagedImage) => void;
+  onSingleDownload: (item: ManagedImage) => void;
+  onTogglePath: (path: string, checked: boolean) => void;
+  onRemoveTag: (item: ManagedImage, tag: string) => void;
+  onAddTag: (item: ManagedImage) => void;
+  onQuickAddTag: (item: ManagedImage, tag: string) => void;
+}
+
+const ImageRow = memo(function ImageRow({
+  item,
+  imageIndex,
+  isSelected,
+  allTags,
+  tagEditTargetRel,
+  tagInput,
+  onTagInputChange,
+  onTagEditOpenChange,
+  onLightboxOpen,
+  onOpenDeleteDialog,
+  onSingleDownload,
+  onTogglePath,
+  onRemoveTag,
+  onAddTag,
+  onQuickAddTag,
+}: ImageRowProps) {
+  const storage = storageBadge(item);
+
+  return (
+    <div className="group border-r border-b border-stone-100 p-4 transition hover:bg-stone-50">
+      <div className="relative">
+        <button
+          type="button"
+          className="relative block aspect-square w-full cursor-zoom-in overflow-hidden rounded-lg bg-stone-100 text-left"
+          onClick={() => onLightboxOpen(imageIndex)}
+        >
+          <img
+            src={item.thumbnail_url || item.url}
+            alt={item.name}
+            className="h-full w-full object-cover transition group-hover:scale-[1.02]"
+            onError={(event) => {
+              if (event.currentTarget.src !== item.url) {
+                event.currentTarget.src = item.url;
+              }
+            }}
+          />
+          <span className="absolute right-2 bottom-2 rounded-full bg-black/50 p-2 text-white opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
+            <Maximize2 className="size-4" />
+          </span>
+          <span className={`absolute top-2 left-2 rounded-md border px-2 py-1 text-[10px] font-medium ${storage.className}`}>
+            {storage.label}
+          </span>
+        </button>
+        <button
+          type="button"
+          className="absolute top-2 right-2 z-10 inline-flex size-7 items-center justify-center rounded-full bg-black/50 text-white opacity-100 transition hover:bg-red-600 sm:opacity-0 sm:group-hover:opacity-100"
+          title="删除图片"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenDeleteDialog(item);
+          }}
+        >
+          <Trash2 className="size-3.5" />
+        </button>
+      </div>
+      <div className="mt-3 space-y-2 text-xs text-stone-500">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1 font-medium text-stone-700">
+            <CalendarDays className="size-3.5" />
+            {item.created_at}
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 rounded-lg text-stone-400 hover:bg-stone-100 hover:text-stone-700"
+              onClick={() => onSingleDownload(item)}
+              title="下载图片"
+            >
+              <Download className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 rounded-lg text-stone-400 hover:bg-stone-100 hover:text-stone-700"
+              onClick={() => {
+                void navigator.clipboard.writeText(item.url);
+                toast.success("图片地址已复制");
+              }}
+            >
+              <Copy className="size-4" />
+            </Button>
+            <Checkbox checked={isSelected} onCheckedChange={(checked) => onTogglePath(imageKey(item), Boolean(checked))} />
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <span>{formatSize(item.size)}</span>
+          <span className="inline-flex items-center gap-2">
+            <Badge variant="outline" className={`rounded-md px-2 py-0 text-[10px] ${storage.className}`}>
+              {storage.label}
+            </Badge>
+            {item.width && item.height ? `${item.width} x ${item.height}` : "-"}
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-1">
+          {(item.tags ?? []).map((tag) => (
+            <Badge key={tag} variant="secondary" className="gap-0.5 rounded-md py-0 pr-0.5 text-[10px]">
+              {tag}
+              <button
+                type="button"
+                className="inline-flex size-3.5 items-center justify-center rounded-full hover:bg-stone-300"
+                onClick={() => onRemoveTag(item, tag)}
+              >
+                <X className="size-2.5" />
+              </button>
+            </Badge>
+          ))}
+          <Popover open={tagEditTargetRel === item.rel} onOpenChange={(open) => { onTagEditOpenChange(open ? item : null); onTagInputChange(""); }}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex size-5 items-center justify-center rounded-full border border-dashed border-stone-300 text-stone-400 hover:border-stone-500 hover:text-stone-600"
+                title="添加标签"
+              >
+                <Plus className="size-3" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-56 p-2">
+              <div className="space-y-2">
+                <div className="text-xs font-medium text-stone-500">添加标签</div>
+                <div className="flex gap-1">
+                  <Input
+                    value={tagInput}
+                    onChange={(e) => onTagInputChange(e.target.value)}
+                    placeholder="输入标签名"
+                    className="h-8 text-xs"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        onAddTag(item);
+                      }
+                    }}
+                  />
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="size-8 shrink-0"
+                    onClick={() => onAddTag(item)}
+                  >
+                    <Plus className="size-3.5" />
+                  </Button>
+                </div>
+                {allTags.filter((t) => !(item.tags ?? []).includes(t)).length > 0 ? (
+                  <div className="flex flex-wrap gap-1 border-t border-stone-100 pt-2">
+                    {allTags.filter((t) => !(item.tags ?? []).includes(t)).map((tag) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => onQuickAddTag(item, tag)}
+                      >
+                        <Badge variant="outline" className="cursor-pointer rounded-md text-[10px] hover:bg-stone-100">
+                          {tag}
+                        </Badge>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+    </div>
+  );
+});
+
 function ImageManagerContent() {
   const [items, setItems] = useState<ManagedImage[]>([]);
   const [startDate, setStartDate] = useState("");
@@ -101,6 +286,11 @@ function ImageManagerContent() {
   const safePage = Math.min(page, pageCount);
   const currentRows = filteredItems.slice((safePage - 1) * pageSize, safePage * pageSize);
   const selectedSet = useMemo(() => new Set(selectedPaths), [selectedPaths]);
+  const imageUrlIndexMap = useMemo(() => {
+    const map = new Map<string, number>();
+    filteredItems.forEach((item, index) => map.set(item.url, index));
+    return map;
+  }, [filteredItems]);
   const selectedCount = deleteMode === "filtered" ? items.length : selectedPaths.length;
   const currentPageSelected = currentRows.length > 0 && currentRows.every((item) => selectedSet.has(imageKey(item)));
   const allSelected = filteredItems.length > 0 && filteredItems.every((item) => selectedSet.has(imageKey(item)));
@@ -262,6 +452,40 @@ function ImageManagerContent() {
     await downloadSingleImage(item.rel);
   };
 
+  const handleTogglePath = useCallback((path: string, checked: boolean) => {
+    togglePaths([path], checked);
+  }, []);
+
+  const handleRemoveTagStable = useCallback((item: ManagedImage, tag: string) => {
+    handleRemoveTag(item, tag);
+  }, [handleRemoveTag]);
+
+  const handleAddTagStable = useCallback((item: ManagedImage) => {
+    handleAddTag(item);
+  }, [handleAddTag]);
+
+  const handleQuickAddTag = useCallback((item: ManagedImage, tag: string) => {
+    void handleSetTags(item, [...(item.tags ?? []), tag]);
+    setTagEditTarget(null);
+  }, [handleSetTags]);
+
+  const handleSingleDownloadStable = useCallback((item: ManagedImage) => {
+    void handleSingleDownload(item);
+  }, []);
+
+  const handleLightboxOpen = useCallback((index: number) => {
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  }, []);
+
+  const handleTagInputChange = useCallback((value: string) => {
+    setTagInput(value);
+  }, []);
+
+  const handleTagEditOpenChange = useCallback((item: ManagedImage | null) => {
+    setTagEditTarget(item);
+  }, []);
+
   useEffect(() => {
     const controller = new AbortController();
     void loadImages(controller.signal);
@@ -375,161 +599,26 @@ function ImageManagerContent() {
             </div>
           </div>
           <div className="grid gap-0 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {currentRows.map((item) => {
-              const imageIndex = filteredItems.findIndex((row) => row.url === item.url);
-              const storage = storageBadge(item);
-              return (
-              <div key={item.rel} className="group border-r border-b border-stone-100 p-4 transition hover:bg-stone-50">
-                <div className="relative">
-                  <button
-                    type="button"
-                    className="relative block aspect-square w-full cursor-zoom-in overflow-hidden rounded-lg bg-stone-100 text-left"
-                    onClick={() => {
-                      setLightboxIndex(imageIndex);
-                      setLightboxOpen(true);
-                    }}
-                  >
-                    <img
-                      src={item.thumbnail_url || item.url}
-                      alt={item.name}
-                      className="h-full w-full object-cover transition group-hover:scale-[1.02]"
-                      onError={(event) => {
-                        if (event.currentTarget.src !== item.url) {
-                          event.currentTarget.src = item.url;
-                        }
-                      }}
-                    />
-                    <span className="absolute right-2 bottom-2 rounded-full bg-black/50 p-2 text-white opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
-                      <Maximize2 className="size-4" />
-                    </span>
-                    <span className={`absolute top-2 left-2 rounded-md border px-2 py-1 text-[10px] font-medium ${storage.className}`}>
-                      {storage.label}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className="absolute top-2 right-2 z-10 inline-flex size-7 items-center justify-center rounded-full bg-black/50 text-white opacity-100 transition hover:bg-red-600 sm:opacity-0 sm:group-hover:opacity-100"
-                    title="删除图片"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openDeleteDialog(item);
-                    }}
-                  >
-                    <Trash2 className="size-3.5" />
-                  </button>
-                </div>
-                <div className="mt-3 space-y-2 text-xs text-stone-500">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1 font-medium text-stone-700">
-                      <CalendarDays className="size-3.5" />
-                      {item.created_at}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8 rounded-lg text-stone-400 hover:bg-stone-100 hover:text-stone-700"
-                        onClick={() => void handleSingleDownload(item)}
-                        title="下载图片"
-                      >
-                        <Download className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8 rounded-lg text-stone-400 hover:bg-stone-100 hover:text-stone-700"
-                        onClick={() => {
-                          void navigator.clipboard.writeText(item.url);
-                          toast.success("图片地址已复制");
-                        }}
-                      >
-                        <Copy className="size-4" />
-                      </Button>
-                      <Checkbox checked={selectedSet.has(imageKey(item))} onCheckedChange={(checked) => togglePaths([imageKey(item)], Boolean(checked))} />
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span>{formatSize(item.size)}</span>
-                    <span className="inline-flex items-center gap-2">
-                      <Badge variant="outline" className={`rounded-md px-2 py-0 text-[10px] ${storage.className}`}>
-                        {storage.label}
-                      </Badge>
-                      {item.width && item.height ? `${item.width} x ${item.height}` : "-"}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1">
-                    {(item.tags ?? []).map((tag) => (
-                      <Badge key={tag} variant="secondary" className="gap-0.5 rounded-md py-0 pr-0.5 text-[10px]">
-                        {tag}
-                        <button
-                          type="button"
-                          className="inline-flex size-3.5 items-center justify-center rounded-full hover:bg-stone-300"
-                          onClick={() => handleRemoveTag(item, tag)}
-                        >
-                          <X className="size-2.5" />
-                        </button>
-                      </Badge>
-                    ))}
-                    <Popover open={tagEditTarget?.rel === item.rel} onOpenChange={(open) => { setTagEditTarget(open ? item : null); setTagInput(""); }}>
-                      <PopoverTrigger asChild>
-                        <button
-                          type="button"
-                          className="inline-flex size-5 items-center justify-center rounded-full border border-dashed border-stone-300 text-stone-400 hover:border-stone-500 hover:text-stone-600"
-                          title="添加标签"
-                        >
-                          <Plus className="size-3" />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent align="start" className="w-56 p-2">
-                        <div className="space-y-2">
-                          <div className="text-xs font-medium text-stone-500">添加标签</div>
-                          <div className="flex gap-1">
-                            <Input
-                              value={tagInput}
-                              onChange={(e) => setTagInput(e.target.value)}
-                              placeholder="输入标签名"
-                              className="h-8 text-xs"
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  handleAddTag(item);
-                                }
-                              }}
-                            />
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              className="size-8 shrink-0"
-                              onClick={() => handleAddTag(item)}
-                            >
-                              <Plus className="size-3.5" />
-                            </Button>
-                          </div>
-                          {allTags.filter((t) => !(item.tags ?? []).includes(t)).length > 0 ? (
-                            <div className="flex flex-wrap gap-1 border-t border-stone-100 pt-2">
-                              {allTags.filter((t) => !(item.tags ?? []).includes(t)).map((tag) => (
-                                <button
-                                  key={tag}
-                                  type="button"
-                                  onClick={() => {
-                                    void handleSetTags(item, [...(item.tags ?? []), tag]);
-                                    setTagEditTarget(null);
-                                  }}
-                                >
-                                  <Badge variant="outline" className="cursor-pointer rounded-md text-[10px] hover:bg-stone-100">
-                                    {tag}
-                                  </Badge>
-                                </button>
-                              ))}
-                            </div>
-                          ) : null}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-              </div>
-            )})}
+            {currentRows.map((item) => (
+              <ImageRow
+                key={item.rel}
+                item={item}
+                imageIndex={imageUrlIndexMap.get(item.url) ?? 0}
+                isSelected={selectedSet.has(imageKey(item))}
+                allTags={allTags}
+                tagEditTargetRel={tagEditTarget?.rel ?? null}
+                tagInput={tagInput}
+                onTagInputChange={handleTagInputChange}
+                onTagEditOpenChange={handleTagEditOpenChange}
+                onLightboxOpen={handleLightboxOpen}
+                onOpenDeleteDialog={openDeleteDialog}
+                onSingleDownload={handleSingleDownloadStable}
+                onTogglePath={handleTogglePath}
+                onRemoveTag={handleRemoveTagStable}
+                onAddTag={handleAddTagStable}
+                onQuickAddTag={handleQuickAddTag}
+              />
+            ))}
           </div>
           <div className="flex items-center justify-end gap-2 border-t border-stone-100 px-4 py-3 text-sm text-stone-500">
             <span>第 {safePage} / {pageCount} 页，共 {filteredItems.length} 张</span>

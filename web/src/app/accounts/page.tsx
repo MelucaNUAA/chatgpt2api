@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentProps } from "react";
 import {
   Ban,
@@ -183,6 +183,127 @@ function displayAccountType(account: Account) {
   return account.type || "Free";
 }
 
+interface AccountRowProps {
+  account: Account;
+  isSelected: boolean;
+  onToggleSelect: (token: string, checked: boolean) => void;
+  onEdit: (account: Account) => void;
+  onRefresh: (token: string) => void;
+  onDelete: (token: string) => void;
+  isUpdating: boolean;
+  isRefreshing: boolean;
+  isDeleting: boolean;
+}
+
+const AccountRow = memo(function AccountRow({
+  account,
+  isSelected,
+  onToggleSelect,
+  onEdit,
+  onRefresh,
+  onDelete,
+  isUpdating,
+  isRefreshing,
+  isDeleting,
+}: AccountRowProps) {
+  const status = statusMeta[account.status];
+  const StatusIcon = status.icon;
+
+  return (
+    <tr className="border-b border-stone-100/80 text-sm text-stone-600 transition-colors hover:bg-stone-50/70">
+      <td className="px-4 py-3">
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={(checked) => onToggleSelect(account.access_token, Boolean(checked))}
+        />
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span
+            className="max-w-[240px] truncate font-medium tracking-tight text-stone-700 transition duration-150 blur-sm hover:blur-none"
+            title={account.access_token}
+          >
+            {account.access_token}
+          </span>
+          <button
+            type="button"
+            className="rounded-lg p-1 text-stone-400 transition hover:bg-stone-100 hover:text-stone-700"
+            onClick={() => {
+              void navigator.clipboard.writeText(account.access_token);
+              toast.success("token 已复制");
+            }}
+          >
+            <Copy className="size-4" />
+          </button>
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        <Badge variant="secondary" className="rounded-md bg-stone-100 text-stone-700">
+          {displayAccountType(account)}
+        </Badge>
+      </td>
+      <td className="px-4 py-3">
+        <Badge
+          variant={status.badge}
+          className="inline-flex items-center gap-1 rounded-md px-2 py-1"
+        >
+          <StatusIcon className="size-3.5" />
+          {account.status}
+        </Badge>
+      </td>
+      <td className="px-4 py-3">
+        <div className="text-xs leading-5 text-stone-500">{renderPrivacyEmail(account.email)}</div>
+      </td>
+      <td className="px-4 py-3">
+        <Badge variant="info" className="rounded-md">
+          {formatQuota(account)}
+        </Badge>
+      </td>
+      <td className="px-4 py-3 text-xs leading-5 text-stone-500">
+        {(() => {
+          const restore = formatRestoreAt(account.restore_at);
+          return (
+            <div className="space-y-0.5">
+              {restore.relative ? <div className="font-medium text-stone-700">{restore.relative}</div> : null}
+              <div>{restore.absolute}</div>
+            </div>
+          );
+        })()}
+      </td>
+      <td className="px-4 py-3 text-stone-500">{account.success}</td>
+      <td className="px-4 py-3 text-stone-500">{account.fail}</td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-1 text-stone-400">
+          <button
+            type="button"
+            className="rounded-lg p-2 transition hover:bg-stone-100 hover:text-stone-700"
+            onClick={() => onEdit(account)}
+            disabled={isUpdating}
+          >
+            <Pencil className="size-4" />
+          </button>
+          <button
+            type="button"
+            className="rounded-lg p-2 transition hover:bg-stone-100 hover:text-stone-700"
+            onClick={() => onRefresh(account.access_token)}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={cn("size-4", isRefreshing ? "animate-spin" : "")} />
+          </button>
+          <button
+            type="button"
+            className="rounded-lg p-2 transition hover:bg-rose-50 hover:text-rose-500"
+            onClick={() => onDelete(account.access_token)}
+            disabled={isDeleting}
+          >
+            <Trash2 className="size-4" />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+});
+
 function AccountsPageContent() {
   const didLoadRef = useRef(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -242,7 +363,7 @@ function AccountsPageContent() {
   const startIndex = (safePage - 1) * Number(pageSize);
   const currentRows = filteredAccounts.slice(startIndex, startIndex + Number(pageSize));
   const allCurrentSelected =
-    currentRows.length > 0 && currentRows.every((row) => selectedIds.includes(row.access_token));
+    currentRows.length > 0 && currentRows.every((row) => selectedSet.has(row.access_token));
 
   const summary = useMemo(() => {
     const total = accounts.length;
@@ -379,6 +500,8 @@ function AccountsPageContent() {
     }
   };
 
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
   const toggleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelectedIds((prev) => Array.from(new Set([...prev, ...currentRows.map((item) => item.access_token)])));
@@ -386,6 +509,27 @@ function AccountsPageContent() {
     }
     setSelectedIds((prev) => prev.filter((id) => !currentRows.some((row) => row.access_token === id)));
   };
+
+  const handleToggleSelect = useCallback((token: string, checked: boolean) => {
+    setSelectedIds((prev) =>
+      checked
+        ? Array.from(new Set([...prev, token]))
+        : prev.filter((item) => item !== token),
+    );
+  }, []);
+
+  const handleOpenEditDialog = useCallback((account: Account) => {
+    setEditingAccount(account);
+    setEditStatus(account.status);
+  }, []);
+
+  const handleRefreshOne = useCallback((token: string) => {
+    void handleRefreshAccounts([token]);
+  }, [handleRefreshAccounts]);
+
+  const handleDeleteOne = useCallback((token: string) => {
+    void handleDeleteTokens([token]);
+  }, [handleDeleteTokens]);
 
   return (
     <>
@@ -676,113 +820,20 @@ function AccountsPageContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {currentRows.map((account) => {
-                    const status = statusMeta[account.status];
-                    const StatusIcon = status.icon;
-
-                    return (
-                      <tr
-                        key={account.access_token}
-                        className="border-b border-stone-100/80 text-sm text-stone-600 transition-colors hover:bg-stone-50/70"
-                      >
-                        <td className="px-4 py-3">
-                          <Checkbox
-                            checked={selectedIds.includes(account.access_token)}
-                            onCheckedChange={(checked) => {
-                              setSelectedIds((prev) =>
-                                checked
-                                  ? Array.from(new Set([...prev, account.access_token]))
-                                  : prev.filter((item) => item !== account.access_token),
-                              );
-                            }}
-                          />
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="max-w-[240px] truncate font-medium tracking-tight text-stone-700 transition duration-150 blur-sm hover:blur-none"
-                              title={account.access_token}
-                            >
-                              {account.access_token}
-                            </span>
-                            <button
-                              type="button"
-                              className="rounded-lg p-1 text-stone-400 transition hover:bg-stone-100 hover:text-stone-700"
-                              onClick={() => {
-                                void navigator.clipboard.writeText(account.access_token);
-                                toast.success("token 已复制");
-                              }}
-                            >
-                              <Copy className="size-4" />
-                            </button>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge variant="secondary" className="rounded-md bg-stone-100 text-stone-700">
-                            {displayAccountType(account)}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge
-                            variant={status.badge}
-                            className="inline-flex items-center gap-1 rounded-md px-2 py-1"
-                          >
-                            <StatusIcon className="size-3.5" />
-                            {account.status}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="text-xs leading-5 text-stone-500">{renderPrivacyEmail(account.email)}</div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge variant="info" className="rounded-md">
-                            {formatQuota(account)}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3 text-xs leading-5 text-stone-500">
-                          {(() => {
-                            const restore = formatRestoreAt(account.restore_at);
-                            return (
-                              <div className="space-y-0.5">
-                                {restore.relative ? <div className="font-medium text-stone-700">{restore.relative}</div> : null}
-                                <div>{restore.absolute}</div>
-                              </div>
-                            );
-                          })()}
-                        </td>
-                        <td className="px-4 py-3 text-stone-500">{account.success}</td>
-                        <td className="px-4 py-3 text-stone-500">{account.fail}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-1 text-stone-400">
-                            <button
-                              type="button"
-                              className="rounded-lg p-2 transition hover:bg-stone-100 hover:text-stone-700"
-                              onClick={() => openEditDialog(account)}
-                              disabled={isUpdating}
-                            >
-                              <Pencil className="size-4" />
-                            </button>
-                            <button
-                              type="button"
-                              className="rounded-lg p-2 transition hover:bg-stone-100 hover:text-stone-700"
-                              onClick={() => void handleRefreshAccounts([account.access_token])}
-                              disabled={isRefreshing}
-                            >
-                              <RefreshCw className={cn("size-4", isRefreshing ? "animate-spin" : "")} />
-                            </button>
-                            <button
-                              type="button"
-                              className="rounded-lg p-2 transition hover:bg-rose-50 hover:text-rose-500"
-                              onClick={() => void handleDeleteTokens([account.access_token])}
-                              disabled={isDeleting}
-                            >
-                              <Trash2 className="size-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {currentRows.map((account) => (
+                    <AccountRow
+                      key={account.access_token}
+                      account={account}
+                      isSelected={selectedSet.has(account.access_token)}
+                      onToggleSelect={handleToggleSelect}
+                      onEdit={handleOpenEditDialog}
+                      onRefresh={handleRefreshOne}
+                      onDelete={handleDeleteOne}
+                      isUpdating={isUpdating}
+                      isRefreshing={isRefreshing}
+                      isDeleting={isDeleting}
+                    />
+                  ))}
                 </tbody>
               </table>
 

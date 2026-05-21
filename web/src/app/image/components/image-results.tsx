@@ -5,6 +5,7 @@ import { Clock3, Download, LoaderCircle, RotateCcw, Sparkles, Trash2 } from "luc
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getOrCreateObjectUrl } from "@/store/image-conversations";
 import type { ImageConversation, ImageTurnStatus, StoredImage, StoredReferenceImage } from "@/store/image-conversations";
 
 export type ImageLightboxItem = {
@@ -28,7 +29,7 @@ type ImageResultsProps = {
 
 function getStoredImageSrc(image: StoredImage) {
   if (image.b64_json) {
-    return `data:image/png;base64,${image.b64_json}`;
+    return getOrCreateObjectUrl(image.id, image.b64_json);
   }
   return image.url || "";
 }

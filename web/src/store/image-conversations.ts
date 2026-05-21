@@ -263,6 +263,10 @@ export async function renameImageConversation(id: string, title: string): Promis
 export async function deleteImageConversation(id: string): Promise<void> {
   await queueImageConversationWrite(async () => {
     const items = await readStoredImageConversations();
+    const target = items.find((item) => item.id === id);
+    if (target) {
+      revokeObjectUrls(collectImageIds(target));
+    }
     await imageConversationStorage.setItem(
       IMAGE_CONVERSATIONS_KEY,
       items.filter((item) => item.id !== id),
@@ -272,8 +276,62 @@ export async function deleteImageConversation(id: string): Promise<void> {
 
 export async function clearImageConversations(): Promise<void> {
   await queueImageConversationWrite(async () => {
+    revokeAllObjectUrls();
     await imageConversationStorage.removeItem(IMAGE_CONVERSATIONS_KEY);
   });
+}
+
+// ---------------------------------------------------------------------------
+// Object URL cache — avoids holding full base64 strings in React state / DOM
+// ---------------------------------------------------------------------------
+
+const objectUrlCache = new Map<string, string>();
+
+/**
+ * Returns a cached Object URL for the given image ID, creating one from the
+ * base64 payload if it does not exist yet.  The caller is responsible for
+ * revoking URLs when they are no longer needed (e.g. conversation deleted).
+ */
+export function getOrCreateObjectUrl(id: string, b64_json: string): string {
+  const existing = objectUrlCache.get(id);
+  if (existing) {
+    return existing;
+  }
+  const binary = atob(b64_json);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  const blob = new Blob([bytes], { type: "image/png" });
+  const url = URL.createObjectURL(blob);
+  objectUrlCache.set(id, url);
+  return url;
+}
+
+/** Revoke and remove cached Object URLs for the given image IDs. */
+export function revokeObjectUrls(ids: string[]): void {
+  for (const id of ids) {
+    const url = objectUrlCache.get(id);
+    if (url) {
+      URL.revokeObjectURL(url);
+      objectUrlCache.delete(id);
+    }
+  }
+}
+
+/** Revoke and remove ALL cached Object URLs. */
+export function revokeAllObjectUrls(): void {
+  for (const url of objectUrlCache.values()) {
+    URL.revokeObjectURL(url);
+  }
+  objectUrlCache.clear();
+}
+
+/**
+ * Collects all image IDs from a conversation (for use with revokeObjectUrls).
+ */
+function collectImageIds(conversation: ImageConversation): string[] {
+  return conversation.turns.flatMap((turn) => turn.images.map((image) => image.id));
 }
 
 export function getImageConversationStats(conversation: ImageConversation | null): ImageConversationStats {

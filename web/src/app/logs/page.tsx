@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, ImageIcon, LoaderCircle, RefreshCw, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -48,6 +48,83 @@ function getStatus(item: SystemLog) {
   if (status === "failed") return "失败";
   return "-";
 }
+
+interface LogRowProps {
+  item: SystemLog;
+  isSelected: boolean;
+  isCallLog: boolean;
+  onToggleSelect: (id: string, checked: boolean) => void;
+  onOpenDetail: (item: SystemLog) => void;
+  onOpenLogImage: (item: SystemLog, index: number) => void;
+  onDeleteSingle: (item: SystemLog) => void;
+}
+
+const LogRow = memo(function LogRow({
+  item,
+  isSelected,
+  isCallLog,
+  onToggleSelect,
+  onOpenDetail,
+  onOpenLogImage,
+  onDeleteSingle,
+}: LogRowProps) {
+  const urls = getUrls(item);
+
+  return (
+    <TableRow className="text-stone-600">
+      <TableCell>
+        <Checkbox checked={isSelected} onCheckedChange={(checked) => onToggleSelect(item.id, Boolean(checked))} />
+      </TableCell>
+      <TableCell className="whitespace-nowrap">{item.time}</TableCell>
+      <TableCell><Badge variant="secondary" className="rounded-md">{typeLabels[item.type] || item.type}</Badge></TableCell>
+      {isCallLog ? <TableCell>{getDetailText(item, "key_name")}</TableCell> : null}
+      {isCallLog ? <TableCell>{formatDuration(item)}</TableCell> : null}
+      {isCallLog ? (
+        <TableCell>
+          <Badge variant={item.detail?.status === "failed" ? "danger" : "success"} className="rounded-md">
+            {getStatus(item)}
+          </Badge>
+        </TableCell>
+      ) : null}
+      {isCallLog ? (
+        <TableCell>
+          {urls.length ? (
+            <div className="flex items-center gap-1.5">
+              {urls.slice(0, 3).map((url, imageIndex) => (
+                <button
+                  key={`${url}-${imageIndex}`}
+                  type="button"
+                  className="relative size-9 overflow-hidden rounded-lg border border-stone-200 bg-stone-100"
+                  onClick={() => onOpenLogImage(item, imageIndex)}
+                  title="预览图片"
+                >
+                  <ImageThumbnail src={url} thumbnailSrc={getImageThumbnailUrl(url)} className="h-full w-full" />
+                </button>
+              ))}
+              {urls.length > 3 ? <span className="text-xs text-stone-400">+{urls.length - 3}</span> : null}
+            </div>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-xs text-stone-400">
+              <ImageIcon className="size-3.5" />
+              -
+            </span>
+          )}
+        </TableCell>
+      ) : null}
+      <TableCell className="max-w-[420px] truncate text-stone-500">{item.summary || "-"}</TableCell>
+      <TableCell>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" className="h-8 rounded-lg px-3 text-stone-600" onClick={() => onOpenDetail(item)}>
+            查看详情
+          </Button>
+          <Button variant="ghost" className="h-8 rounded-lg px-3 text-rose-600 hover:bg-rose-50 hover:text-rose-700" onClick={() => onDeleteSingle(item)}>
+            删除
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+});
 
 function LogsContent() {
   const [items, setItems] = useState<SystemLog[]>([]);
@@ -108,6 +185,25 @@ function LogsContent() {
   const toggleIds = (ids: string[], checked: boolean) => {
     setSelectedIds((current) => checked ? Array.from(new Set([...current, ...ids])) : current.filter((id) => !ids.includes(id)));
   };
+
+  const handleToggleSelect = useCallback((id: string, checked: boolean) => {
+    toggleIds([id], checked);
+  }, []);
+
+  const handleOpenDetail = useCallback((item: SystemLog) => {
+    setDetailLog(item);
+    setDetailOpen(true);
+  }, []);
+
+  const handleOpenLogImage = useCallback((item: SystemLog, index: number) => {
+    setDetailLog(item);
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  }, []);
+
+  const handleDeleteSingle = useCallback((item: SystemLog) => {
+    setDeletingItems([item]);
+  }, []);
 
   const confirmDelete = async () => {
     const ids = deletingItems.map((item) => item.id);
@@ -207,63 +303,18 @@ function LogsContent() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentRows.map((item) => {
-                  const urls = getUrls(item);
-                  return (
-                    <TableRow key={item.id} className="text-stone-600">
-                      <TableCell>
-                        <Checkbox checked={selectedSet.has(item.id)} onCheckedChange={(checked) => toggleIds([item.id], Boolean(checked))} />
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">{item.time}</TableCell>
-                      <TableCell><Badge variant="secondary" className="rounded-md">{typeLabels[item.type] || item.type}</Badge></TableCell>
-                      {isCallLog ? <TableCell>{getDetailText(item, "key_name")}</TableCell> : null}
-                      {isCallLog ? <TableCell>{formatDuration(item)}</TableCell> : null}
-                      {isCallLog ? (
-                        <TableCell>
-                          <Badge variant={item.detail?.status === "failed" ? "danger" : "success"} className="rounded-md">
-                            {getStatus(item)}
-                          </Badge>
-                        </TableCell>
-                      ) : null}
-                      {isCallLog ? (
-                        <TableCell>
-                          {urls.length ? (
-                            <div className="flex items-center gap-1.5">
-                              {urls.slice(0, 3).map((url, imageIndex) => (
-                                <button
-                                  key={`${url}-${imageIndex}`}
-                                  type="button"
-                                  className="relative size-9 overflow-hidden rounded-lg border border-stone-200 bg-stone-100"
-                                  onClick={() => openLogImage(item, imageIndex)}
-                                  title="预览图片"
-                                >
-                                  <ImageThumbnail src={url} thumbnailSrc={getImageThumbnailUrl(url)} className="h-full w-full" />
-                                </button>
-                              ))}
-                              {urls.length > 3 ? <span className="text-xs text-stone-400">+{urls.length - 3}</span> : null}
-                            </div>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-xs text-stone-400">
-                              <ImageIcon className="size-3.5" />
-                              -
-                            </span>
-                          )}
-                        </TableCell>
-                      ) : null}
-                      <TableCell className="max-w-[420px] truncate text-stone-500">{item.summary || "-"}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button variant="ghost" className="h-8 rounded-lg px-3 text-stone-600" onClick={() => openDetail(item)}>
-                            查看详情
-                          </Button>
-                          <Button variant="ghost" className="h-8 rounded-lg px-3 text-rose-600 hover:bg-rose-50 hover:text-rose-700" onClick={() => setDeletingItems([item])}>
-                            删除
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {currentRows.map((item) => (
+                  <LogRow
+                    key={item.id}
+                    item={item}
+                    isSelected={selectedSet.has(item.id)}
+                    isCallLog={isCallLog}
+                    onToggleSelect={handleToggleSelect}
+                    onOpenDetail={handleOpenDetail}
+                    onOpenLogImage={handleOpenLogImage}
+                    onDeleteSingle={handleDeleteSingle}
+                  />
+                ))}
               </TableBody>
             </Table>
           </div>

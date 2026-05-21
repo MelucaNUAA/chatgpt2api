@@ -1,21 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, History, LoaderCircle, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ImageComposer } from "@/app/image/components/image-composer";
 import { ImageResults, type ImageLightboxItem } from "@/app/image/components/image-results";
 import { ImageSidebar } from "@/app/image/components/image-sidebar";
-import { ImageLightbox } from "@/components/image-lightbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
   createImageEditTask,
@@ -34,6 +25,7 @@ import {
   getImageConversationStats,
   listImageConversations,
   renameImageConversation,
+  revokeObjectUrls,
   saveImageConversation,
   saveImageConversations,
   type ImageConversation,
@@ -43,6 +35,13 @@ import {
   type StoredImage,
   type StoredReferenceImage,
 } from "@/store/image-conversations";
+
+const LazyImageLightbox = lazy(() =>
+  import("@/components/image-lightbox").then((m) => ({ default: m.ImageLightbox })),
+);
+const LazyDeleteConfirmDialog = lazy(() => import("./components/delete-confirm-dialog"));
+const LazyCompressConfirmDialog = lazy(() => import("./components/compress-confirm-dialog"));
+const LazyHistoryDialog = lazy(() => import("./components/image-history-dialog"));
 
 const ACTIVE_CONVERSATION_STORAGE_KEY = "chatgpt2api:image_active_conversation_id";
 const IMAGE_SIZE_STORAGE_KEY = "chatgpt2api:image_last_size";
@@ -678,6 +677,14 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
       return;
     }
 
+    // Revoke Object URLs for images whose b64_json is about to be dropped
+    if (part === "results") {
+      const turn = conversation.turns.find((t) => t.id === turnId);
+      if (turn) {
+        revokeObjectUrls(turn.images.map((image) => image.id));
+      }
+    }
+
     const turns = conversation.turns
       .map((turn) => {
         if (turn.id !== turnId) {
@@ -1264,36 +1271,21 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
           />
         </div>
 
-        <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
-          <DialogContent className="flex h-[min(82dvh,760px)] w-[92vw] max-w-[460px] flex-col overflow-hidden rounded-[32px] border-white/80 bg-white p-0 shadow-[0_32px_110px_-38px_rgba(15,23,42,0.45)] sm:rounded-[36px]">
-            <DialogHeader className="px-6 pt-7 pb-4 sm:px-8">
-              <DialogTitle className="flex items-center gap-2 text-xl font-bold tracking-tight">
-                <History className="size-5" />
-                历史记录
-              </DialogTitle>
-            </DialogHeader>
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-8 sm:px-8">
-              <ImageSidebar
-                conversations={conversations}
-                isLoadingHistory={isLoadingHistory}
-                selectedConversationId={selectedConversationId}
-                onCreateDraft={() => {
-                  handleCreateDraft();
-                  setIsHistoryOpen(false);
-                }}
-                onClearHistory={openClearHistoryConfirm}
-                onSelectConversation={(id) => {
-                  setSelectedConversationId(id);
-                  setIsHistoryOpen(false);
-                }}
-                onDeleteConversation={openDeleteConversationConfirm}
-                onRenameConversation={handleRenameConversation}
-                formatConversationTime={formatConversationTime}
-                hideActionButtons
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Suspense fallback={null}>
+          <LazyHistoryDialog
+            open={isHistoryOpen}
+            onOpenChange={setIsHistoryOpen}
+            conversations={conversations}
+            isLoadingHistory={isLoadingHistory}
+            selectedConversationId={selectedConversationId}
+            onCreateDraft={handleCreateDraft}
+            onClearHistory={openClearHistoryConfirm}
+            onSelectConversation={setSelectedConversationId}
+            onDeleteConversation={openDeleteConversationConfirm}
+            onRenameConversation={handleRenameConversation}
+            formatConversationTime={formatConversationTime}
+          />
+        </Suspense>
 
         <div className="flex min-h-0 flex-col gap-2 sm:gap-4">
           <div className="flex items-center justify-between gap-2 px-1 lg:hidden">
@@ -1374,54 +1366,38 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
         </div>
       </section>
 
-      <ImageLightbox
-        images={lightboxImages}
-        currentIndex={lightboxIndex}
-        open={lightboxOpen}
-        onOpenChange={setLightboxOpen}
-        onIndexChange={setLightboxIndex}
-      />
+      {lightboxOpen ? (
+        <Suspense fallback={null}>
+          <LazyImageLightbox
+            images={lightboxImages}
+            currentIndex={lightboxIndex}
+            open
+            onOpenChange={setLightboxOpen}
+            onIndexChange={setLightboxIndex}
+          />
+        </Suspense>
+      ) : null}
 
       {deleteConfirm ? (
-        <Dialog open onOpenChange={(open) => (!open ? setDeleteConfirm(null) : null)}>
-          <DialogContent showCloseButton={false} className="rounded-2xl p-6">
-            <DialogHeader className="gap-2">
-              <DialogTitle>{deleteConfirmTitle}</DialogTitle>
-              <DialogDescription className="text-sm leading-6">
-                {deleteConfirmDescription}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
-                取消
-              </Button>
-              <Button className="bg-rose-600 text-white hover:bg-rose-700" onClick={() => void handleConfirmDelete()}>
-                确认删除
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <Suspense fallback={null}>
+          <LazyDeleteConfirmDialog
+            title={deleteConfirmTitle}
+            description={deleteConfirmDescription}
+            onCancel={() => setDeleteConfirm(null)}
+            onConfirm={handleConfirmDelete}
+          />
+        </Suspense>
       ) : null}
 
       {compressConfirm ? (
-        <Dialog open onOpenChange={(open) => (!open ? setCompressConfirm(null) : null)}>
-          <DialogContent showCloseButton={false} className="rounded-2xl p-6">
-            <DialogHeader className="gap-2">
-              <DialogTitle>图片超过大小限制</DialogTitle>
-              <DialogDescription className="text-sm leading-6">
-                选中的图片总大小为 {compressConfirm.totalSizeMb} MB，超过 {imageUploadMaxMb} MB 限制。是否压缩后上传？
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => void handleCompressConfirm(false)}>
-                取消
-              </Button>
-              <Button className="bg-stone-950 text-white hover:bg-stone-800" onClick={() => void handleCompressConfirm(true)}>
-                压缩并上传
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <Suspense fallback={null}>
+          <LazyCompressConfirmDialog
+            totalSizeMb={compressConfirm.totalSizeMb}
+            maxMb={imageUploadMaxMb}
+            onCancel={() => void handleCompressConfirm(false)}
+            onConfirm={() => void handleCompressConfirm(true)}
+          />
+        </Suspense>
       ) : null}
     </>
   );
