@@ -55,7 +55,7 @@ export function TopNav() {
             href="https://github.com/basketikun/chatgpt2api"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 py-1 text-sm text-stone-400 transition hover:text-stone-700 dark:text-stone-500 dark:hover:text-stone-200"
+            className="hidden sm:inline-flex items-center gap-1.5 py-1 text-sm text-stone-400 transition hover:text-stone-700 dark:text-stone-500 dark:hover:text-stone-200"
             aria-label="GitHub repository"
           >
             <Github className="size-4" />
