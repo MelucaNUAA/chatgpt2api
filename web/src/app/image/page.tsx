@@ -1256,7 +1256,7 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <>
-      <section className="mx-auto flex h-[100dvh] min-h-0 w-full max-w-[1380px] flex-col overflow-hidden sm:grid sm:h-[calc(100dvh-5.25rem)] sm:grid-cols-1 sm:gap-3 sm:px-3 sm:pb-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+      <section className="mx-auto flex h-[calc(100dvh-57px)] min-h-0 w-full max-w-[1380px] flex-col overflow-hidden sm:grid sm:h-[calc(100dvh-5.25rem)] sm:grid-cols-1 sm:gap-3 sm:px-3 sm:pb-6 lg:grid-cols-[240px_minmax(0,1fr)]">
         <div className="hidden h-full min-h-0 border-r border-stone-200/70 pr-3 lg:block">
           <ImageSidebar
             conversations={conversations}
@@ -1318,7 +1318,7 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
             <div
               ref={resultsViewportRef}
               onScroll={handleResultsScroll}
-              className="hide-scrollbar h-full overscroll-contain scroll-smooth overflow-y-auto px-1 py-2 sm:px-4 sm:py-4"
+              className="hide-scrollbar h-full overscroll-contain scroll-smooth overflow-y-auto px-1 pb-[200px] pt-2 sm:px-4 sm:pb-4 sm:pt-4"
             >
               <ImageResults
                 selectedConversation={selectedConversation}
