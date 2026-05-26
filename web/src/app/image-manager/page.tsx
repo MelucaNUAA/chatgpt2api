@@ -565,8 +565,8 @@ function ImageManagerContent() {
 
       <Card className="rounded-2xl border-white/80 bg-white/90 shadow-sm">
         <CardContent className="p-0">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 px-5 py-4">
-            <div className="flex flex-wrap items-center gap-3 text-sm text-stone-600">
+          <div className="flex flex-col gap-3 border-b border-stone-100 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-5 sm:py-4">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-stone-600 sm:gap-3">
               <ImageIcon className="size-4" />
               共 {filteredItems.length} 张
               {selectedTags.length > 0 ? <span className="text-stone-400">（筛选自 {items.length} 张）</span> : null}
@@ -574,13 +574,13 @@ function ImageManagerContent() {
                 <Checkbox checked={currentPageSelected} onCheckedChange={(checked) => togglePaths(currentRows.map(imageKey), Boolean(checked))} />
                 本页全选
               </label>
-              <label className="flex items-center gap-2">
+              <label className="hidden items-center gap-2 sm:flex">
                 <Checkbox checked={allSelected} onCheckedChange={(checked) => togglePaths(filteredItems.map(imageKey), Boolean(checked))} />
                 全选结果
               </label>
               {selectedPaths.length > 0 ? <span>已选 {selectedPaths.length} 张</span> : null}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button variant="ghost" className="h-8 rounded-lg px-3 text-stone-500" onClick={() => void loadImages()} disabled={isLoading}>
                 <RefreshCw className={`size-4 ${isLoading ? "animate-spin" : ""}`} />
                 刷新
@@ -598,7 +598,7 @@ function ImageManagerContent() {
               </Button>
             </div>
           </div>
-          <div className="grid gap-0 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-0 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {currentRows.map((item) => (
               <ImageRow
                 key={item.rel}

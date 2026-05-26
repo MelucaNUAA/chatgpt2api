@@ -217,7 +217,7 @@ const AccountRow = memo(function AccountRow({
           onCheckedChange={(checked) => onToggleSelect(account.access_token, Boolean(checked))}
         />
       </td>
-      <td className="px-4 py-3">
+      <td className="hidden px-4 py-3 sm:table-cell">
         <div className="flex items-center gap-2">
           <span
             className="max-w-[240px] truncate font-medium tracking-tight text-stone-700 transition duration-150 blur-sm hover:blur-none"
@@ -251,7 +251,7 @@ const AccountRow = memo(function AccountRow({
           {account.status}
         </Badge>
       </td>
-      <td className="px-4 py-3">
+      <td className="hidden px-4 py-3 sm:table-cell">
         <div className="text-xs leading-5 text-stone-500">{renderPrivacyEmail(account.email)}</div>
       </td>
       <td className="px-4 py-3">
@@ -259,7 +259,7 @@ const AccountRow = memo(function AccountRow({
           {formatQuota(account)}
         </Badge>
       </td>
-      <td className="px-4 py-3 text-xs leading-5 text-stone-500">
+      <td className="hidden px-4 py-3 text-xs leading-5 text-stone-500 lg:table-cell">
         {(() => {
           const restore = formatRestoreAt(account.restore_at);
           return (
@@ -270,8 +270,8 @@ const AccountRow = memo(function AccountRow({
           );
         })()}
       </td>
-      <td className="px-4 py-3 text-stone-500">{account.success}</td>
-      <td className="px-4 py-3 text-stone-500">{account.fail}</td>
+      <td className="hidden px-4 py-3 text-stone-500 lg:table-cell">{account.success}</td>
+      <td className="hidden px-4 py-3 text-stone-500 lg:table-cell">{account.fail}</td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-1 text-stone-400">
           <button
@@ -798,7 +798,7 @@ function AccountsPageContent() {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[920px] text-left">
+              <table className="w-full min-w-[480px] text-left sm:min-w-[920px]">
                 <thead className="border-b border-stone-100 text-[11px] text-stone-400 uppercase tracking-[0.18em]">
                   <tr>
                     <th className="w-12 px-4 py-3">
@@ -807,14 +807,14 @@ function AccountsPageContent() {
                         onCheckedChange={(checked) => toggleSelectAll(Boolean(checked))}
                       />
                     </th>
-                    <th className="w-56 px-4 py-3">token</th>
+                    <th className="hidden w-56 px-4 py-3 sm:table-cell">token</th>
                     <th className="w-28 px-4 py-3">类型</th>
                     <th className="w-24 px-4 py-3">状态</th>
-                    <th className="w-56 px-4 py-3">账号信息</th>
+                    <th className="hidden w-56 px-4 py-3 sm:table-cell">账号信息</th>
                     <th className="w-24 px-4 py-3">额度</th>
-                    <th className="w-40 px-4 py-3">恢复时间</th>
-                    <th className="w-18 px-4 py-3">成功</th>
-                    <th className="w-18 px-4 py-3">失败</th>
+                    <th className="hidden w-40 px-4 py-3 lg:table-cell">恢复时间</th>
+                    <th className="hidden w-18 px-4 py-3 lg:table-cell">成功</th>
+                    <th className="hidden w-18 px-4 py-3 lg:table-cell">失败</th>
                     <th className="w-24 px-4 py-3">操作</th>
                   </tr>
                 </thead>

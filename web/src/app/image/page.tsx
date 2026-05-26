@@ -1256,7 +1256,7 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <>
-      <section className="mx-auto grid h-[calc(100dvh-10rem)] min-h-0 w-full max-w-[1380px] grid-cols-1 gap-2 overflow-hidden px-0 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] sm:h-[calc(100dvh-5.25rem)] sm:gap-3 sm:px-3 sm:pb-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+      <section className="mx-auto flex h-[100dvh] min-h-0 w-full max-w-[1380px] flex-col overflow-hidden sm:grid sm:h-[calc(100dvh-5.25rem)] sm:grid-cols-1 sm:gap-3 sm:px-3 sm:pb-6 lg:grid-cols-[240px_minmax(0,1fr)]">
         <div className="hidden h-full min-h-0 border-r border-stone-200/70 pr-3 lg:block">
           <ImageSidebar
             conversations={conversations}
@@ -1287,7 +1287,7 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
           />
         </Suspense>
 
-        <div className="flex min-h-0 flex-col gap-2 sm:gap-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-2 sm:gap-4">
           <div className="flex items-center justify-between gap-2 px-1 lg:hidden">
             <Button
               variant="outline"
@@ -1346,25 +1346,49 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
             ) : null}
           </div>
 
-          <ImageComposer
-            prompt={imagePrompt}
-            imageCount={imageCount}
-            imageSize={imageSize}
-            availableQuota={availableQuota}
-            activeTaskCount={activeTaskCount}
-            referenceImages={referenceImages}
-            textareaRef={textareaRef}
-            fileInputRef={fileInputRef}
-            onPromptChange={setImagePrompt}
-            onImageCountChange={(value) => setImageCount(value ? clampImageCount(value) : "")}
-            onImageSizeChange={setImageSize}
-            onSubmit={handleSubmit}
-            onPickReferenceImage={() => fileInputRef.current?.click()}
-            onReferenceImageChange={handleReferenceImageChange}
-            onRemoveReferenceImage={handleRemoveReferenceImage}
-          />
         </div>
       </section>
+
+      <div className="fixed bottom-[54px] left-0 right-0 z-40 bg-white/95 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg sm:hidden">
+        <ImageComposer
+          prompt={imagePrompt}
+          imageCount={imageCount}
+          imageSize={imageSize}
+          availableQuota={availableQuota}
+          activeTaskCount={activeTaskCount}
+          referenceImages={referenceImages}
+          textareaRef={textareaRef}
+          fileInputRef={fileInputRef}
+          onPromptChange={setImagePrompt}
+          onImageCountChange={(value) => setImageCount(value ? clampImageCount(value) : "")}
+          onImageSizeChange={setImageSize}
+          onSubmit={handleSubmit}
+          onPickReferenceImage={() => fileInputRef.current?.click()}
+          onReferenceImageChange={handleReferenceImageChange}
+          onRemoveReferenceImage={handleRemoveReferenceImage}
+        />
+      </div>
+
+      {/* Desktop ImageComposer - inside the flow */}
+      <div className="hidden sm:block">
+        <ImageComposer
+          prompt={imagePrompt}
+          imageCount={imageCount}
+          imageSize={imageSize}
+          availableQuota={availableQuota}
+          activeTaskCount={activeTaskCount}
+          referenceImages={referenceImages}
+          textareaRef={textareaRef}
+          fileInputRef={fileInputRef}
+          onPromptChange={setImagePrompt}
+          onImageCountChange={(value) => setImageCount(value ? clampImageCount(value) : "")}
+          onImageSizeChange={setImageSize}
+          onSubmit={handleSubmit}
+          onPickReferenceImage={() => fileInputRef.current?.click()}
+          onReferenceImageChange={handleReferenceImageChange}
+          onRemoveReferenceImage={handleRemoveReferenceImage}
+        />
+      </div>
 
       {lightboxOpen ? (
         <Suspense fallback={null}>

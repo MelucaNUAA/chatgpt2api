@@ -234,7 +234,6 @@
   /* 优化渲染性能 */
   main {
     will-change: auto;
-    contain: layout style;
   }
 
   /* 减少重绘 */

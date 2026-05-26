@@ -77,8 +77,8 @@ const LogRow = memo(function LogRow({
       </TableCell>
       <TableCell className="whitespace-nowrap">{item.time}</TableCell>
       <TableCell><Badge variant="secondary" className="rounded-md">{typeLabels[item.type] || item.type}</Badge></TableCell>
-      {isCallLog ? <TableCell>{getDetailText(item, "key_name")}</TableCell> : null}
-      {isCallLog ? <TableCell>{formatDuration(item)}</TableCell> : null}
+      {isCallLog ? <TableCell className="hidden sm:table-cell">{getDetailText(item, "key_name")}</TableCell> : null}
+      {isCallLog ? <TableCell className="hidden sm:table-cell">{formatDuration(item)}</TableCell> : null}
       {isCallLog ? (
         <TableCell>
           <Badge variant={item.detail?.status === "failed" ? "danger" : "success"} className="rounded-md">
@@ -87,7 +87,7 @@ const LogRow = memo(function LogRow({
         </TableCell>
       ) : null}
       {isCallLog ? (
-        <TableCell>
+        <TableCell className="hidden sm:table-cell">
           {urls.length ? (
             <div className="flex items-center gap-1.5">
               {urls.slice(0, 3).map((url, imageIndex) => (
@@ -114,10 +114,10 @@ const LogRow = memo(function LogRow({
       <TableCell className="max-w-[420px] truncate text-stone-500">{item.summary || "-"}</TableCell>
       <TableCell>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" className="h-8 rounded-lg px-3 text-stone-600" onClick={() => onOpenDetail(item)}>
-            查看详情
+          <Button variant="ghost" className="h-8 rounded-lg px-2 text-xs text-stone-600 sm:px-3 sm:text-sm" onClick={() => onOpenDetail(item)}>
+            详情
           </Button>
-          <Button variant="ghost" className="h-8 rounded-lg px-3 text-rose-600 hover:bg-rose-50 hover:text-rose-700" onClick={() => onDeleteSingle(item)}>
+          <Button variant="ghost" className="h-8 rounded-lg px-2 text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700 sm:px-3 sm:text-sm" onClick={() => onDeleteSingle(item)}>
             删除
           </Button>
         </div>
@@ -288,16 +288,16 @@ function LogsContent() {
             </div>
           </div>
           <div className="overflow-x-auto">
-            <Table className="min-w-[900px]">
+            <Table className="min-w-[480px] sm:min-w-[900px]">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12"></TableHead>
                   <TableHead>时间</TableHead>
                   <TableHead>类型</TableHead>
-                  {isCallLog ? <TableHead>令牌名称</TableHead> : null}
-                  {isCallLog ? <TableHead>调用耗时</TableHead> : null}
+                  {isCallLog ? <TableHead className="hidden sm:table-cell">令牌名称</TableHead> : null}
+                  {isCallLog ? <TableHead className="hidden sm:table-cell">调用耗时</TableHead> : null}
                   {isCallLog ? <TableHead>状态</TableHead> : null}
-                  {isCallLog ? <TableHead className="w-36">图片</TableHead> : null}
+                  {isCallLog ? <TableHead className="hidden w-36 sm:table-cell">图片</TableHead> : null}
                   <TableHead>简述</TableHead>
                   <TableHead className="w-40">操作</TableHead>
                 </TableRow>
