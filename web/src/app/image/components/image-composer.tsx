@@ -1,6 +1,7 @@
 "use client";
 import { ArrowUp, Check, ChevronDown, ImagePlus, LoaderCircle, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type ClipboardEvent, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ClipboardEvent, type RefObject } from "react";
+import { createPortal } from "react-dom";
 
 import { ImageLightbox } from "@/components/image-lightbox";
 import { Button } from "@/components/ui/button";
@@ -68,7 +69,7 @@ export function ImageComposer({
       return;
     }
     const handlePointerDown = (event: MouseEvent) => {
-      if (!sizeMenuRef.current?.contains(event.target as Node)) {
+      if (!sizeMenuRef.current?.contains(event.target as Node) && !sizeMenuBtnRef.current?.contains(event.target as Node)) {
         setIsSizeMenuOpen(false);
       }
     };
@@ -76,6 +77,16 @@ export function ImageComposer({
     return () => {
       window.removeEventListener("mousedown", handlePointerDown);
     };
+  }, [isSizeMenuOpen]);
+
+  useLayoutEffect(() => {
+    if (!isSizeMenuOpen || !sizeMenuBtnRef.current) return;
+    const rect = sizeMenuBtnRef.current.getBoundingClientRect();
+    const menuWidth = Math.min(186, window.innerWidth - 32);
+    setSizeMenuPos({
+      top: rect.top - 8,
+      left: Math.max(16, Math.min(rect.left, window.innerWidth - menuWidth - 16)),
+    });
   }, [isSizeMenuOpen]);
 
   const handleTextareaPaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
@@ -213,19 +224,12 @@ export function ImageComposer({
                       ref={sizeMenuBtnRef}
                       type="button"
                       className="flex h-7 w-[78px] items-center justify-between bg-transparent text-left text-xs font-bold text-stone-700 min-[390px]:w-[96px] sm:h-8 sm:w-[132px]"
-                      onClick={() => {
-                        if (!isSizeMenuOpen && sizeMenuBtnRef.current) {
-                          const rect = sizeMenuBtnRef.current.getBoundingClientRect();
-                          const menuWidth = Math.min(186, window.innerWidth - 32);
-                          setSizeMenuPos({ top: rect.top - 8, left: Math.max(16, Math.min(rect.left, window.innerWidth - menuWidth - 16)) });
-                        }
-                        setIsSizeMenuOpen((open) => !open);
-                      }}
+                      onClick={() => setIsSizeMenuOpen((open) => !open)}
                     >
                       <span className="truncate">{imageSizeLabel}</span>
                       <ChevronDown className={cn("size-4 shrink-0 opacity-60 transition", isSizeMenuOpen && "rotate-180")} />
                     </button>
-                    {isSizeMenuOpen ? (
+                    {isSizeMenuOpen ? createPortal(
                       <div
                         ref={sizeMenuRef}
                         className="fixed z-[80] max-h-[45dvh] overflow-y-auto rounded-3xl border border-white/80 bg-white p-2 shadow-[0_24px_80px_-32px_rgba(15,23,42,0.35)]"
@@ -256,7 +260,8 @@ export function ImageComposer({
                             </button>
                           );
                         })}
-                      </div>
+                      </div>,
+                      document.body,
                     ) : null}
                   </div>
 
