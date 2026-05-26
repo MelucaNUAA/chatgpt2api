@@ -40,7 +40,7 @@ export default function RootLayout({
       >
         <AuthProvider>
           <Toaster position="top-center" richColors offset={48} />
-          <main className="min-h-screen overflow-x-hidden bg-stone-50 px-4 pt-0 pb-2 text-stone-900 dark:bg-stone-950 dark:text-stone-100 sm:px-6 sm:pt-2 lg:px-8">
+          <main className="min-h-screen overflow-x-hidden bg-stone-50 px-4 pt-0 pb-20 text-stone-900 dark:bg-stone-950 dark:text-stone-100 sm:px-6 sm:pt-2 sm:pb-2 lg:px-8">
             <div className="mx-auto box-border flex min-h-screen max-w-[1440px] flex-col gap-2 pt-[env(safe-area-inset-top)] sm:gap-5 sm:pt-0">
               <TopNav />
               {children}
