@@ -239,19 +239,19 @@ function LogsContent() {
           <div className="text-xs font-semibold tracking-[0.18em] text-stone-500 uppercase">Logs</div>
           <h1 className="text-2xl font-semibold tracking-tight">日志管理</h1>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Select value={type} onValueChange={setType}>
-            <SelectTrigger className="h-10 w-[150px] rounded-xl border-stone-200 bg-white"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-10 w-full rounded-xl border-stone-200 bg-white sm:w-[150px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value={LogType.Call}>调用日志</SelectItem>
               <SelectItem value={LogType.Account}>账号管理日志</SelectItem>
             </SelectContent>
           </Select>
           <DateRangeFilter startDate={startDate} endDate={endDate} onChange={(start, end) => { setStartDate(start); setEndDate(end); }} />
-          <Button variant="outline" onClick={clearFilters} className="h-10 rounded-xl border-stone-200 bg-white px-4 text-stone-700">
+          <Button variant="outline" onClick={clearFilters} className="h-10 w-full rounded-xl border-stone-200 bg-white px-4 text-stone-700 sm:w-auto">
             清除筛选条件
           </Button>
-          <Button onClick={() => void loadLogs()} disabled={isLoading} className="h-10 rounded-xl bg-stone-950 px-4 text-white hover:bg-stone-800">
+          <Button onClick={() => void loadLogs()} disabled={isLoading} className="h-10 w-full rounded-xl bg-stone-950 px-4 text-white hover:bg-stone-800 sm:w-auto">
             {isLoading ? <LoaderCircle className="size-4 animate-spin" /> : <Search className="size-4" />}
             查询
           </Button>
