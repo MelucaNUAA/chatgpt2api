@@ -3,6 +3,8 @@ services:
     build: .
     container_name: chatgpt2api
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "3001:80"
     volumes:
@@ -28,11 +30,3 @@ services:
       # 基础 URL (可选)
       # - CHATGPT2API_BASE_URL=https://your-domain.com
 
-  alist:
-    image: xhofe/alist:latest
-    container_name: alist
-    restart: unless-stopped
-    ports:
-      - "5244:5244"
-    volumes:
-      - ./alist-data:/opt/alist/data
