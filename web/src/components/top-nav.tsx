@@ -25,6 +25,7 @@ import { invalidateAuthCache } from "@/lib/auth-session";
 
 const adminNavItems = [
   { href: "/image", label: "画图" },
+  { href: "/ecommerce", label: "电商配图" },
   { href: "/accounts", label: "号池管理" },
   { href: "/register", label: "注册机" },
   { href: "/image-manager", label: "图片管理" },
