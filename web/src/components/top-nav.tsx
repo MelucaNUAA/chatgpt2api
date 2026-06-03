@@ -9,6 +9,7 @@ import {
   Github,
   MoreHorizontal,
   Paintbrush,
+  ShoppingBag,
   ScrollText,
   Settings,
   UserPlus,
@@ -42,6 +43,7 @@ const bottomTabItems = [
 ] as const;
 
 const moreMenuItems = [
+  { href: "/ecommerce", label: "电商配图", icon: ShoppingBag },
   { href: "/logs", label: "日志", icon: ScrollText },
   { href: "/register", label: "注册机", icon: UserPlus },
   { href: "/settings", label: "设置", icon: Settings },
@@ -95,7 +97,7 @@ function BottomTabBar() {
   const [moreOpen, setMoreOpen] = useState(false);
 
   const isActive = (href: string) => pathname === href;
-  const isMoreActive = ["/logs", "/register", "/settings"].some(
+  const isMoreActive = ["/ecommerce", "/logs", "/register", "/settings"].some(
     (path) => pathname === path || pathname.startsWith(path + "/"),
   );
 
