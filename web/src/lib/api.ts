@@ -452,6 +452,32 @@ export async function fetchImageTasks(ids: string[]) {
   return httpRequest<ImageTaskListResponse>(`/api/image-tasks${params.toString() ? `?${params.toString()}` : ""}`);
 }
 
+export type ChatMessage = {
+  role: "system" | "user" | "assistant";
+  content: string | Array<{ type: string; [key: string]: unknown }>;
+};
+
+export type ChatCompletionResponse = {
+  id: string;
+  choices: Array<{
+    message: { role: string; content: string };
+    finish_reason: string;
+  }>;
+};
+
+export async function chatCompletions(
+  messages: ChatMessage[],
+  model?: string,
+): Promise<ChatCompletionResponse> {
+  return httpRequest<ChatCompletionResponse>("/v1/chat/completions", {
+    method: "POST",
+    body: {
+      messages,
+      ...(model ? { model } : {}),
+    },
+  });
+}
+
 export async function fetchSettingsConfig() {
   return httpRequest<{ config: SettingsConfig }>("/api/settings");
 }
