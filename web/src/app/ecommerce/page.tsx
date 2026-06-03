@@ -222,13 +222,21 @@ function EcommercePageContent() {
           aspectRatio,
         );
 
-        // Poll until done
+        // Poll until done (with timeout and error tolerance)
         let currentTask: ImageTask = task;
+        const deadline = Date.now() + 5 * 60 * 1000; // 5 min timeout
         while (currentTask.status === "queued" || currentTask.status === "running") {
+          if (Date.now() > deadline) {
+            throw new Error("生成超时，请重试");
+          }
           await sleep(2000);
-          const taskList = await fetchImageTasks([taskId]);
-          if (taskList.items.length > 0) {
-            currentTask = taskList.items[0];
+          try {
+            const taskList = await fetchImageTasks([taskId]);
+            if (taskList.items.length > 0) {
+              currentTask = taskList.items[0];
+            }
+          } catch {
+            // Network hiccup — continue polling
           }
         }
 

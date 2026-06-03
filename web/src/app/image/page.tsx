@@ -1032,11 +1032,16 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
           }
 
           await sleep(2000);
-          const taskList = await fetchImageTasks(loadingTaskIds);
-          if (taskList.items.length > 0) {
+          let taskList: Awaited<ReturnType<typeof fetchImageTasks>> | null = null;
+          try {
+            taskList = await fetchImageTasks(loadingTaskIds);
+          } catch {
+            // Network hiccup — continue polling
+          }
+          if (taskList && taskList.items.length > 0) {
             await applyTasks(taskList.items);
           }
-          if (taskList.missing_ids.length > 0 && latestTurn) {
+          if (taskList && taskList.missing_ids.length > 0 && latestTurn) {
             const missingImages = latestTurn.images.filter(
               (image) => image.status === "loading" && image.taskId && taskList.missing_ids.includes(image.taskId),
             );
