@@ -1,0 +1,419 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { LoaderCircle } from "lucide-react";
+import { toast } from "sonner";
+
+import { useAuthGuard } from "@/lib/auth-provider";
+import { createImageEditTask, fetchImageTasks } from "@/lib/api";
+import type { ImageTask } from "@/lib/api";
+import type { StoredReferenceImage } from "@/store/image-conversations";
+import type { EcommerceProject, ImageScheme, GeneratedResult } from "@/store/ecommerce";
+import { listProjects, saveProject } from "@/store/ecommerce";
+import { planSchemes } from "./lib/scheme-planner";
+import { ProductForm } from "./components/product-form";
+import { SchemeCard } from "./components/scheme-card";
+import { ResultGrid } from "./components/result-grid";
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function sleep(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function dataUrlToFile(dataUrl: string, fileName: string): File {
+  const [header, content] = dataUrl.split(",", 2);
+  const mimeType = header.match(/data:(.*?);base64/)?.[1] ?? "image/png";
+  const binary = atob(content ?? "");
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new File([bytes], fileName, { type: mimeType });
+}
+
+function createId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+// ---------------------------------------------------------------------------
+// EcommercePageContent
+// ---------------------------------------------------------------------------
+
+function EcommercePageContent() {
+  // -- Form state -----------------------------------------------------------
+  const [projectName, setProjectName] = useState("");
+  const [productDescription, setProductDescription] = useState("");
+  const [aspectRatio, setAspectRatio] = useState("1:1");
+  const [imageCount, setImageCount] = useState("4");
+  const [autoPlan, setAutoPlan] = useState(false);
+  const [productImages, setProductImages] = useState<StoredReferenceImage[]>([]);
+
+  // -- Data state -----------------------------------------------------------
+  const [schemes, setSchemes] = useState<ImageScheme[]>([]);
+  const [results, setResults] = useState<GeneratedResult[]>([]);
+
+  // -- UI state -------------------------------------------------------------
+  const [isPlanning, setIsPlanning] = useState(false);
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+
+  // -- Refs -----------------------------------------------------------------
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const schemesRef = useRef(schemes);
+  const resultsRef = useRef(results);
+
+  // Keep refs in sync
+  useEffect(() => {
+    schemesRef.current = schemes;
+  }, [schemes]);
+
+  useEffect(() => {
+    resultsRef.current = results;
+  }, [results]);
+
+  // -- Load last project on mount -------------------------------------------
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadLastProject = async () => {
+      try {
+        const projects = await listProjects();
+        if (cancelled || projects.length === 0) return;
+
+        const project = projects[0];
+        setProjectName(project.productName);
+        setProductDescription(project.productDescription);
+        setAspectRatio(project.aspectRatio);
+        setImageCount(project.imageCount !== null ? String(project.imageCount) : "4");
+        setAutoPlan(project.autoPlan);
+        setProductImages(project.productImages);
+        setSchemes(project.schemes);
+        setResults(project.results);
+        setCurrentProjectId(project.id);
+      } catch {
+        // silently ignore load errors
+      }
+    };
+
+    void loadLastProject();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // -- Auto-save with 1s debounce -------------------------------------------
+  useEffect(() => {
+    if (schemes.length === 0 && results.length === 0) return;
+
+    if (saveTimerRef.current !== null) {
+      clearTimeout(saveTimerRef.current);
+    }
+
+    saveTimerRef.current = setTimeout(() => {
+      const project: EcommerceProject = {
+        id: currentProjectId ?? createId(),
+        productName: projectName,
+        productDescription,
+        productImages,
+        aspectRatio,
+        imageCount: autoPlan ? null : Number(imageCount) || null,
+        autoPlan,
+        schemes: schemesRef.current,
+        results: resultsRef.current,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      if (!currentProjectId) {
+        setCurrentProjectId(project.id);
+      }
+      void saveProject(project);
+    }, 1000);
+
+    return () => {
+      if (saveTimerRef.current !== null) {
+        clearTimeout(saveTimerRef.current);
+      }
+    };
+  }, [schemes, results, projectName, productDescription, productImages, aspectRatio, imageCount, autoPlan, currentProjectId]);
+
+  // -- Plan -----------------------------------------------------------------
+  const handlePlan = useCallback(async () => {
+    setIsPlanning(true);
+    try {
+      const planned = await planSchemes({
+        productName: projectName,
+        productDescription,
+        imageCount: autoPlan ? null : Number(imageCount) || null,
+        aspectRatio,
+      });
+      setSchemes(planned);
+      setResults([]);
+      toast.success(`已生成 ${planned.length} 个方案`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "生成方案失败";
+      toast.error(message);
+    } finally {
+      setIsPlanning(false);
+    }
+  }, [projectName, productDescription, imageCount, autoPlan, aspectRatio]);
+
+  // -- Build final prompt ---------------------------------------------------
+  const buildFinalPrompt = useCallback(
+    (scheme: ImageScheme) => {
+      let prompt = scheme.prompt;
+      if (
+        scheme.textMode === "prompt" &&
+        scheme.textOverlay.enabled
+      ) {
+        const parts: string[] = [];
+        if (scheme.textOverlay.title) parts.push(`main title: "${scheme.textOverlay.title}"`);
+        if (scheme.textOverlay.subtitle) parts.push(`subtitle: "${scheme.textOverlay.subtitle}"`);
+        if (scheme.textOverlay.description) parts.push(`description: "${scheme.textOverlay.description}"`);
+        if (parts.length > 0) {
+          const position = scheme.textOverlay.position === "top" ? "top" : scheme.textOverlay.position === "bottom" ? "bottom" : "center";
+          prompt += `\n\nAdd text overlay on the image at the ${position} area. Text color should be ${scheme.textOverlay.color}. ${parts.join(", ")}.`;
+        }
+      }
+      return prompt;
+    },
+    [],
+  );
+
+  // -- Generate single scheme -----------------------------------------------
+  const handleGenerateSingle = useCallback(
+    async (scheme: ImageScheme) => {
+      // Update scheme status to generating
+      setSchemes((prev) =>
+        prev.map((s) =>
+          s.id === scheme.id ? { ...s, status: "generating" as const } : s,
+        ),
+      );
+
+      // Create loading result
+      const resultId = createId();
+      const loadingResult: GeneratedResult = {
+        id: resultId,
+        schemeId: scheme.id,
+        status: "loading",
+      };
+      setResults((prev) => [
+        ...prev.filter((r) => r.schemeId !== scheme.id),
+        loadingResult,
+      ]);
+
+      try {
+        // Convert product images to files
+        const files = productImages.map((img, idx) =>
+          dataUrlToFile(img.dataUrl, img.name || `product-${idx + 1}.png`),
+        );
+
+        const finalPrompt = buildFinalPrompt(scheme);
+        const taskId = resultId;
+        const task = await createImageEditTask(
+          taskId,
+          files,
+          finalPrompt,
+          undefined,
+          aspectRatio,
+        );
+
+        // Poll until done
+        let currentTask: ImageTask = task;
+        while (currentTask.status === "queued" || currentTask.status === "running") {
+          await sleep(2000);
+          const taskList = await fetchImageTasks([taskId]);
+          if (taskList.items.length > 0) {
+            currentTask = taskList.items[0];
+          }
+        }
+
+        if (currentTask.status === "success") {
+          const first = currentTask.data?.[0];
+          const successResult: GeneratedResult = {
+            id: resultId,
+            schemeId: scheme.id,
+            taskId,
+            status: "success",
+            b64_json: first?.b64_json,
+            url: first?.url,
+          };
+          setResults((prev) =>
+            prev.map((r) => (r.id === resultId ? successResult : r)),
+          );
+          setSchemes((prev) =>
+            prev.map((s) =>
+              s.id === scheme.id ? { ...s, status: "done" as const } : s,
+            ),
+          );
+          toast.success(`${scheme.type || "图片"} 生成成功`);
+        } else {
+          const errorMsg = currentTask.error || "生成失败";
+          const errorResult: GeneratedResult = {
+            id: resultId,
+            schemeId: scheme.id,
+            taskId,
+            status: "error",
+            error: errorMsg,
+          };
+          setResults((prev) =>
+            prev.map((r) => (r.id === resultId ? errorResult : r)),
+          );
+          setSchemes((prev) =>
+            prev.map((s) =>
+              s.id === scheme.id ? { ...s, status: "error" as const } : s,
+            ),
+          );
+          toast.error(errorMsg);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "生成失败";
+        const errorResult: GeneratedResult = {
+          id: resultId,
+          schemeId: scheme.id,
+          status: "error",
+          error: message,
+        };
+        setResults((prev) =>
+          prev.map((r) => (r.id === resultId ? errorResult : r)),
+        );
+        setSchemes((prev) =>
+          prev.map((s) =>
+            s.id === scheme.id ? { ...s, status: "error" as const } : s,
+          ),
+        );
+        toast.error(message);
+      }
+    },
+    [productImages, buildFinalPrompt, aspectRatio],
+  );
+
+  // -- Generate all ---------------------------------------------------------
+  const handleGenerateAll = useCallback(async () => {
+    const pendingSchemes = schemes.filter(
+      (s) => s.status === "draft" || s.status === "error",
+    );
+    for (const scheme of pendingSchemes) {
+      await handleGenerateSingle(scheme);
+    }
+  }, [schemes, handleGenerateSingle]);
+
+  // -- Update / delete scheme -----------------------------------------------
+  const handleUpdateScheme = useCallback((updatedScheme: ImageScheme) => {
+    setSchemes((prev) =>
+      prev.map((s) => (s.id === updatedScheme.id ? updatedScheme : s)),
+    );
+  }, []);
+
+  const handleDeleteScheme = useCallback((schemeId: string) => {
+    setSchemes((prev) => prev.filter((s) => s.id !== schemeId));
+    setResults((prev) => prev.filter((r) => r.schemeId !== schemeId));
+  }, []);
+
+  // -- Retry result ---------------------------------------------------------
+  const handleRetryResult = useCallback(
+    (result: GeneratedResult) => {
+      const scheme = schemes.find((s) => s.id === result.schemeId);
+      if (scheme) {
+        void handleGenerateSingle(scheme);
+      }
+    },
+    [schemes, handleGenerateSingle],
+  );
+
+  // -- Derived state --------------------------------------------------------
+  const canGenerateAll = schemes.some(
+    (s) => s.status === "draft" || s.status === "error",
+  );
+
+  // -- Render ---------------------------------------------------------------
+  return (
+    <section className="flex h-[calc(100vh-64px)] flex-col lg:flex-row">
+      {/* Left: Product Form */}
+      <div className="w-full shrink-0 border-b border-stone-200 bg-stone-50/50 p-5 lg:w-[340px] lg:border-b-0 lg:border-r lg:overflow-y-auto">
+        <ProductForm
+          projectName={projectName}
+          productDescription={productDescription}
+          aspectRatio={aspectRatio}
+          imageCount={imageCount}
+          autoPlan={autoPlan}
+          productImages={productImages}
+          isPlanning={isPlanning}
+          onProjectNameChange={setProjectName}
+          onProductDescriptionChange={setProductDescription}
+          onAspectRatioChange={setAspectRatio}
+          onImageCountChange={setImageCount}
+          onAutoPlanChange={setAutoPlan}
+          onProductImagesChange={setProductImages}
+          onPlan={handlePlan}
+        />
+      </div>
+
+      {/* Right: Schemes + Results */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        {/* Scheme editor */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {schemes.length === 0 ? (
+            <div className="flex h-full items-center justify-center text-stone-400">
+              填写商品信息后点击 &quot;生成方案&quot; 开始
+            </div>
+          ) : (
+            <>
+              {/* Generate All button */}
+              {canGenerateAll && (
+                <div className="mb-4 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleGenerateAll}
+                    className="rounded-full bg-stone-900 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-stone-800"
+                  >
+                    一键全部生成
+                  </button>
+                </div>
+              )}
+
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {schemes.map((scheme) => (
+                  <SchemeCard
+                    key={scheme.id}
+                    scheme={scheme}
+                    onUpdate={handleUpdateScheme}
+                    onDelete={() => handleDeleteScheme(scheme.id)}
+                    onGenerate={() => void handleGenerateSingle(scheme)}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Result grid */}
+        <div className="border-t border-stone-200 p-4">
+          <ResultGrid results={results} onRetry={handleRetryResult} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Page (auth gate)
+// ---------------------------------------------------------------------------
+
+export default function EcommercePage() {
+  const { isCheckingAuth, session } = useAuthGuard(["admin"]);
+
+  if (isCheckingAuth || !session) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <LoaderCircle className="size-5 animate-spin text-stone-400" />
+      </div>
+    );
+  }
+
+  return <EcommercePageContent />;
+}
