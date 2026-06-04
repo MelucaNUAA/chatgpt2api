@@ -117,7 +117,7 @@ function EcommercePageContent() {
       clearTimeout(saveTimerRef.current);
     }
 
-    saveTimerRef.current = setTimeout(() => {
+    saveTimerRef.current = setTimeout(async () => {
       const project: EcommerceProject = {
         id: currentProjectId ?? createId(),
         productName: projectName,
@@ -134,7 +134,9 @@ function EcommercePageContent() {
       if (!currentProjectId) {
         setCurrentProjectId(project.id);
       }
-      void saveProject(project);
+      await saveProject(project);
+      const updated = await listProjects();
+      setProjects(updated);
     }, 1000);
 
     return () => {
@@ -179,25 +181,28 @@ function EcommercePageContent() {
   }, []);
 
   // -- Delete project --------------------------------------------------------
-  const handleDeleteProject = useCallback(async () => {
-    if (!currentProjectId) return;
+  const handleDeleteProject = useCallback(async (projectId?: string) => {
+    const targetId = projectId ?? currentProjectId;
+    if (!targetId) return;
     try {
-      await deleteProject(currentProjectId);
+      await deleteProject(targetId);
       const remaining = await listProjects();
       setProjects(remaining);
-      if (remaining.length > 0) {
-        const p = remaining[0];
-        setProjectName(p.productName);
-        setProductDescription(p.productDescription);
-        setAspectRatio(p.aspectRatio);
-        setImageCount(p.imageCount !== null ? String(p.imageCount) : "4");
-        setAutoPlan(p.autoPlan);
-        setProductImages(p.productImages);
-        setSchemes(p.schemes);
-        setResults(p.results);
-        setCurrentProjectId(p.id);
-      } else {
-        handleNewProject();
+      if (targetId === currentProjectId) {
+        if (remaining.length > 0) {
+          const p = remaining[0];
+          setProjectName(p.productName);
+          setProductDescription(p.productDescription);
+          setAspectRatio(p.aspectRatio);
+          setImageCount(p.imageCount !== null ? String(p.imageCount) : "4");
+          setAutoPlan(p.autoPlan);
+          setProductImages(p.productImages);
+          setSchemes(p.schemes);
+          setResults(p.results);
+          setCurrentProjectId(p.id);
+        } else {
+          handleNewProject();
+        }
       }
       toast.success("项目已删除");
     } catch {
@@ -436,23 +441,39 @@ function EcommercePageContent() {
                 <Clock className="size-3" />
                 历史记录
               </div>
-              <div className="max-h-32 space-y-0.5 overflow-y-auto">
+              <div className="max-h-40 space-y-0.5 overflow-y-auto">
                 {projects.map((p) => (
-                  <button
+                  <div
                     key={p.id}
-                    type="button"
-                    onClick={() => handleSwitchProject(p)}
-                    className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors ${
+                    className={`group flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs transition-colors ${
                       currentProjectId === p.id
                         ? "bg-stone-900 text-white"
                         : "text-stone-600 hover:bg-stone-100"
                     }`}
                   >
-                    <span className="flex-1 truncate">{p.productName || "未命名项目"}</span>
-                    <span className="shrink-0 text-[10px] opacity-60">
-                      {p.schemes.length}方案
-                    </span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSwitchProject(p)}
+                      className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                    >
+                      <span className="flex-1 truncate">{p.productName || "未命名项目"}</span>
+                      <span className="shrink-0 text-[10px] opacity-60">
+                        {p.schemes.length}方案
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); void handleDeleteProject(p.id); }}
+                      className={`shrink-0 rounded p-0.5 transition-colors ${
+                        currentProjectId === p.id
+                          ? "text-white/60 hover:text-white"
+                          : "text-stone-400 opacity-0 group-hover:opacity-100 hover:text-rose-500"
+                      }`}
+                      title="删除项目"
+                    >
+                      <Trash2 className="size-3" />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
