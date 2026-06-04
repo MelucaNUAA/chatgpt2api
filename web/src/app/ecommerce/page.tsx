@@ -280,6 +280,7 @@ function EcommercePageContent() {
         // Poll until done (with timeout and error tolerance)
         let currentTask: ImageTask = task;
         const deadline = Date.now() + 5 * 60 * 1000; // 5 min timeout
+        let emptyPollCount = 0;
         while (currentTask.status === "queued" || currentTask.status === "running") {
           if (Date.now() > deadline) {
             throw new Error("生成超时，请重试");
@@ -289,8 +290,19 @@ function EcommercePageContent() {
             const taskList = await fetchImageTasks([taskId]);
             if (taskList.items.length > 0) {
               currentTask = taskList.items[0];
+              emptyPollCount = 0;
+            } else if (taskList.missing_ids.includes(taskId)) {
+              // Task not found in backend — may have been cleaned up or owner mismatch
+              throw new Error("任务在后端未找到，请重试");
+            } else {
+              emptyPollCount += 1;
+              if (emptyPollCount >= 5) {
+                throw new Error("轮询无响应，请重试");
+              }
             }
-          } catch {
+          } catch (error) {
+            if (error instanceof Error && error.message.includes("任务在后端未找到")) throw error;
+            if (error instanceof Error && error.message.includes("轮询无响应")) throw error;
             // Network hiccup — continue polling
           }
         }

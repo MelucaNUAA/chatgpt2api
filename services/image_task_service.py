@@ -154,9 +154,12 @@ class ImageTaskService:
             items = []
             missing_ids = []
             for task_id in requested_ids:
-                task = self._tasks.get(_task_key(owner, task_id))
+                key = _task_key(owner, task_id)
+                task = self._tasks.get(key)
                 if task is None:
                     missing_ids.append(task_id)
+                    import logging
+                    logging.warning("[list_tasks] task not found: owner=%s task_id=%s key=%s total_tasks=%d", owner, task_id, key, len(self._tasks))
                 else:
                     items.append(_public_task(task))
             if not requested_ids:
