@@ -193,25 +193,31 @@ export function SchemeCard(props: SchemeCardProps) {
           </div>
 
           {scheme.textOverlay.enabled && (
-            <div className="mt-2 grid grid-cols-3 gap-1.5">
-              <Input
-                placeholder="主标题"
-                value={scheme.textOverlay.title}
-                onChange={(e) => updateOverlay("title", e.target.value)}
-                className="h-7 rounded-md bg-stone-50 text-xs"
-              />
-              <Input
-                placeholder="副标题"
-                value={scheme.textOverlay.subtitle}
-                onChange={(e) => updateOverlay("subtitle", e.target.value)}
-                className="h-7 rounded-md bg-stone-50 text-xs"
-              />
-              <Input
-                placeholder="说明文字"
-                value={scheme.textOverlay.description}
-                onChange={(e) => updateOverlay("description", e.target.value)}
-                className="h-7 rounded-md bg-stone-50 text-xs"
-              />
+            <div className="mt-2 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="w-12 shrink-0 text-[11px] text-stone-400">主标题</span>
+                <Input
+                  value={scheme.textOverlay.title}
+                  onChange={(e) => updateOverlay("title", e.target.value)}
+                  className="h-7 flex-1 rounded-md bg-stone-50 text-xs"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-12 shrink-0 text-[11px] text-stone-400">副标题</span>
+                <Input
+                  value={scheme.textOverlay.subtitle}
+                  onChange={(e) => updateOverlay("subtitle", e.target.value)}
+                  className="h-7 flex-1 rounded-md bg-stone-50 text-xs"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-12 shrink-0 text-[11px] text-stone-400">说明文字</span>
+                <Input
+                  value={scheme.textOverlay.description}
+                  onChange={(e) => updateOverlay("description", e.target.value)}
+                  className="h-7 flex-1 rounded-md bg-stone-50 text-xs"
+                />
+              </div>
             </div>
           )}
         </div>
