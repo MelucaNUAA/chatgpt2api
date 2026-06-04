@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { LoaderCircle } from "lucide-react";
+import { FilePlus, LoaderCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuthGuard } from "@/lib/auth-provider";
@@ -9,7 +9,7 @@ import { createImageEditTask, fetchImageTasks } from "@/lib/api";
 import type { ImageTask } from "@/lib/api";
 import type { StoredReferenceImage } from "@/store/image-conversations";
 import type { EcommerceProject, ImageScheme, GeneratedResult } from "@/store/ecommerce";
-import { listProjects, saveProject } from "@/store/ecommerce";
+import { listProjects, saveProject, deleteProject } from "@/store/ecommerce";
 import { planSchemes } from "./lib/scheme-planner";
 import { ProductForm } from "./components/product-form";
 import { SchemeCard } from "./components/scheme-card";
@@ -61,6 +61,7 @@ function EcommercePageContent() {
   // -- UI state -------------------------------------------------------------
   const [isPlanning, setIsPlanning] = useState(false);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [projects, setProjects] = useState<EcommerceProject[]>([]);
 
   // -- Refs -----------------------------------------------------------------
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -82,10 +83,12 @@ function EcommercePageContent() {
 
     const loadLastProject = async () => {
       try {
-        const projects = await listProjects();
-        if (cancelled || projects.length === 0) return;
+        const allProjects = await listProjects();
+        if (cancelled) return;
+        setProjects(allProjects);
+        if (allProjects.length === 0) return;
 
-        const project = projects[0];
+        const project = allProjects[0];
         setProjectName(project.productName);
         setProductDescription(project.productDescription);
         setAspectRatio(project.aspectRatio);
@@ -161,6 +164,59 @@ function EcommercePageContent() {
       setIsPlanning(false);
     }
   }, [projectName, productDescription, imageCount, autoPlan, aspectRatio]);
+
+  // -- New project -----------------------------------------------------------
+  const handleNewProject = useCallback(() => {
+    setProjectName("");
+    setProductDescription("");
+    setAspectRatio("1:1");
+    setImageCount("4");
+    setAutoPlan(false);
+    setProductImages([]);
+    setSchemes([]);
+    setResults([]);
+    setCurrentProjectId(null);
+  }, []);
+
+  // -- Delete project --------------------------------------------------------
+  const handleDeleteProject = useCallback(async () => {
+    if (!currentProjectId) return;
+    try {
+      await deleteProject(currentProjectId);
+      const remaining = await listProjects();
+      setProjects(remaining);
+      if (remaining.length > 0) {
+        const p = remaining[0];
+        setProjectName(p.productName);
+        setProductDescription(p.productDescription);
+        setAspectRatio(p.aspectRatio);
+        setImageCount(p.imageCount !== null ? String(p.imageCount) : "4");
+        setAutoPlan(p.autoPlan);
+        setProductImages(p.productImages);
+        setSchemes(p.schemes);
+        setResults(p.results);
+        setCurrentProjectId(p.id);
+      } else {
+        handleNewProject();
+      }
+      toast.success("项目已删除");
+    } catch {
+      toast.error("删除失败");
+    }
+  }, [currentProjectId, handleNewProject]);
+
+  // -- Switch project --------------------------------------------------------
+  const handleSwitchProject = useCallback((project: EcommerceProject) => {
+    setProjectName(project.productName);
+    setProductDescription(project.productDescription);
+    setAspectRatio(project.aspectRatio);
+    setImageCount(project.imageCount !== null ? String(project.imageCount) : "4");
+    setAutoPlan(project.autoPlan);
+    setProductImages(project.productImages);
+    setSchemes(project.schemes);
+    setResults(project.results);
+    setCurrentProjectId(project.id);
+  }, []);
 
   // -- Build final prompt ---------------------------------------------------
   const buildFinalPrompt = useCallback(
@@ -343,6 +399,43 @@ function EcommercePageContent() {
     <section className="flex h-[calc(100vh-64px)] flex-col lg:flex-row">
       {/* Left: Product Form */}
       <div className="w-full shrink-0 border-b border-stone-200 bg-stone-50/50 p-5 lg:w-[340px] lg:border-b-0 lg:border-r lg:overflow-y-auto">
+        {/* Project management */}
+        <div className="mb-4 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleNewProject}
+            className="flex items-center gap-1 rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs font-medium text-stone-600 transition-colors hover:border-stone-300 hover:text-stone-800"
+          >
+            <FilePlus className="size-3.5" />
+            新建
+          </button>
+          {projects.length > 1 && (
+            <select
+              value={currentProjectId ?? ""}
+              onChange={(e) => {
+                const p = projects.find((proj) => proj.id === e.target.value);
+                if (p) handleSwitchProject(p);
+              }}
+              className="h-8 flex-1 rounded-lg border border-stone-200 bg-white px-2 text-xs text-stone-700"
+            >
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.productName || "未命名项目"}
+                </option>
+              ))}
+            </select>
+          )}
+          {currentProjectId && (
+            <button
+              type="button"
+              onClick={() => void handleDeleteProject()}
+              className="flex items-center gap-1 rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-stone-400 transition-colors hover:border-rose-300 hover:text-rose-500"
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          )}
+        </div>
+
         <ProductForm
           projectName={projectName}
           productDescription={productDescription}
