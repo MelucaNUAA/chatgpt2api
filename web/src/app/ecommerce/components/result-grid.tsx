@@ -123,14 +123,14 @@ function Lightbox({
     >
       <div
         className="relative"
-        style={{ maxHeight: "40vh", maxWidth: "40vw" }}
+        style={{ maxHeight: "30vh", maxWidth: "30vw" }}
         onClick={(e) => e.stopPropagation()}
       >
         <img
           src={getImageSrc(result)}
           alt="预览"
           className="rounded-lg object-contain"
-          style={{ maxHeight: "40vh", maxWidth: "40vw" }}
+          style={{ maxHeight: "30vh", maxWidth: "30vw" }}
         />
         <div className="absolute -top-3 -right-3 flex gap-2">
           <button
@@ -180,7 +180,7 @@ export function ResultGrid({ results, onRetry }: ResultGridProps) {
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {results.map((result) => {
           switch (result.status) {
             case "loading":
