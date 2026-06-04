@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FilePlus, LoaderCircle, Trash2 } from "lucide-react";
+import { Clock, FilePlus, LoaderCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuthGuard } from "@/lib/auth-provider";
@@ -400,39 +400,53 @@ function EcommercePageContent() {
       {/* Left: Product Form */}
       <div className="w-full shrink-0 border-b border-stone-200 bg-stone-50/50 p-5 lg:w-[340px] lg:border-b-0 lg:border-r lg:overflow-y-auto">
         {/* Project management */}
-        <div className="mb-4 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleNewProject}
-            className="flex items-center gap-1 rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs font-medium text-stone-600 transition-colors hover:border-stone-300 hover:text-stone-800"
-          >
-            <FilePlus className="size-3.5" />
-            新建
-          </button>
-          {projects.length > 1 && (
-            <select
-              value={currentProjectId ?? ""}
-              onChange={(e) => {
-                const p = projects.find((proj) => proj.id === e.target.value);
-                if (p) handleSwitchProject(p);
-              }}
-              className="h-8 flex-1 rounded-lg border border-stone-200 bg-white px-2 text-xs text-stone-700"
-            >
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.productName || "未命名项目"}
-                </option>
-              ))}
-            </select>
-          )}
-          {currentProjectId && (
+        <div className="mb-4 space-y-2">
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => void handleDeleteProject()}
-              className="flex items-center gap-1 rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-stone-400 transition-colors hover:border-rose-300 hover:text-rose-500"
+              onClick={handleNewProject}
+              className="flex items-center gap-1 rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs font-medium text-stone-600 transition-colors hover:border-stone-300 hover:text-stone-800"
             >
-              <Trash2 className="size-3.5" />
+              <FilePlus className="size-3.5" />
+              新建项目
             </button>
+            {currentProjectId && (
+              <button
+                type="button"
+                onClick={() => void handleDeleteProject()}
+                className="flex items-center gap-1 rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-stone-400 transition-colors hover:border-rose-300 hover:text-rose-500"
+              >
+                <Trash2 className="size-3.5" />
+                删除
+              </button>
+            )}
+          </div>
+          {projects.length > 0 && (
+            <div className="space-y-1">
+              <div className="flex items-center gap-1 text-[11px] text-stone-400">
+                <Clock className="size-3" />
+                历史记录
+              </div>
+              <div className="max-h-32 space-y-0.5 overflow-y-auto">
+                {projects.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => handleSwitchProject(p)}
+                    className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors ${
+                      currentProjectId === p.id
+                        ? "bg-stone-900 text-white"
+                        : "text-stone-600 hover:bg-stone-100"
+                    }`}
+                  >
+                    <span className="flex-1 truncate">{p.productName || "未命名项目"}</span>
+                    <span className="shrink-0 text-[10px] opacity-60">
+                      {p.schemes.length}方案
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
         </div>
 
