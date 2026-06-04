@@ -267,7 +267,6 @@ function EcommercePageContent() {
         const files = productImages.map((img, idx) =>
           dataUrlToFile(img.dataUrl, img.name || `product-${idx + 1}.png`),
         );
-
         const finalPrompt = buildFinalPrompt(scheme);
         const taskId = resultId;
         const task = await createImageEditTask(
@@ -361,13 +360,7 @@ function EcommercePageContent() {
     const pendingSchemes = schemes.filter(
       (s) => s.status === "draft" || s.status === "error",
     );
-    console.log("[generateAll] pending:", pendingSchemes.length, pendingSchemes.map(s => s.type));
-    for (const scheme of pendingSchemes) {
-      console.log("[generateAll] starting:", scheme.type, scheme.id);
-      await handleGenerateSingle(scheme);
-      console.log("[generateAll] finished:", scheme.type, scheme.id);
-    }
-    console.log("[generateAll] done, total:", pendingSchemes.length);
+    await Promise.all(pendingSchemes.map((scheme) => handleGenerateSingle(scheme)));
   }, [schemes, handleGenerateSingle]);
 
   // -- Update / delete scheme -----------------------------------------------
