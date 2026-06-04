@@ -361,9 +361,13 @@ function EcommercePageContent() {
     const pendingSchemes = schemes.filter(
       (s) => s.status === "draft" || s.status === "error",
     );
+    console.log("[generateAll] pending:", pendingSchemes.length, pendingSchemes.map(s => s.type));
     for (const scheme of pendingSchemes) {
+      console.log("[generateAll] starting:", scheme.type, scheme.id);
       await handleGenerateSingle(scheme);
+      console.log("[generateAll] finished:", scheme.type, scheme.id);
     }
+    console.log("[generateAll] done, total:", pendingSchemes.length);
   }, [schemes, handleGenerateSingle]);
 
   // -- Update / delete scheme -----------------------------------------------
