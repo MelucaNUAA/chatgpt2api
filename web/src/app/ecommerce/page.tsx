@@ -396,9 +396,9 @@ function EcommercePageContent() {
 
   // -- Render ---------------------------------------------------------------
   return (
-    <section className="flex h-[calc(100vh-64px)] flex-col lg:flex-row">
+    <section className="flex h-[calc(100vh-64px)] flex-col overflow-hidden lg:flex-row">
       {/* Left: Product Form */}
-      <div className="w-full shrink-0 border-b border-stone-200 bg-stone-50/50 p-5 lg:w-[340px] lg:border-b-0 lg:border-r lg:overflow-y-auto">
+      <div className="w-full shrink-0 overflow-y-auto border-b border-stone-200 bg-stone-50/50 p-5 lg:w-[340px] lg:border-b-0 lg:border-r">
         {/* Project management */}
         <div className="mb-4 space-y-2">
           <div className="flex items-center gap-2">
