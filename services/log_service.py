@@ -5,7 +5,13 @@ import json
 import itertools
 import time
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+_BEIJING_TZ = timezone(timedelta(hours=8))
+
+
+def _now_beijing() -> datetime:
+    return datetime.now(tz=_BEIJING_TZ)
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -62,7 +68,7 @@ class LogService:
     def add(self, type: str, summary: str = "", detail: dict[str, Any] | None = None, **data: Any) -> None:
         item = {
             "id": uuid4().hex,
-            "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "time": _now_beijing().strftime("%Y-%m-%d %H:%M:%S"),
             "type": type,
             "summary": summary,
             "detail": detail or data,
@@ -240,7 +246,7 @@ class LoggedCall:
             "endpoint": self.endpoint,
             "model": self.model,
             "started_at": datetime.fromtimestamp(self.started).strftime("%Y-%m-%d %H:%M:%S"),
-            "ended_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "ended_at": _now_beijing().strftime("%Y-%m-%d %H:%M:%S"),
             "duration_ms": int((time.time() - self.started) * 1000),
             "status": status,
         }

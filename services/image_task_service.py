@@ -4,7 +4,9 @@ import json
 import threading
 import time
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+_BEIJING_TZ = timezone(timedelta(hours=8))
 from pathlib import Path
 from typing import Any
 
@@ -22,7 +24,7 @@ UNFINISHED_STATUSES = {TASK_STATUS_QUEUED, TASK_STATUS_RUNNING}
 
 
 def _now_iso() -> str:
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return datetime.now(tz=_BEIJING_TZ).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def _timestamp(value: object) -> float:
