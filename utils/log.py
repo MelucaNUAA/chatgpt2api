@@ -3,7 +3,16 @@ import binascii
 import json
 import logging
 import re
+from datetime import datetime, timezone, timedelta
 from typing import Any
+
+_BEIJING_TZ = timezone(timedelta(hours=8))
+
+
+class _BeijingFormatter(logging.Formatter):
+    def formatTime(self, record: logging.LogRecord, datefmt: str | None = None) -> str:
+        dt = datetime.fromtimestamp(record.created, tz=_BEIJING_TZ)
+        return dt.strftime(datefmt or "%Y-%m-%d %H:%M:%S")
 
 
 class Logger:
@@ -14,7 +23,7 @@ class Logger:
         self._logger = logging.getLogger(name)
         if not self._logger.handlers:
             handler = logging.StreamHandler()
-            handler.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))
+            handler.setFormatter(_BeijingFormatter("[%(asctime)s] [%(levelname)s] %(message)s"))
             self._logger.addHandler(handler)
         self._logger.setLevel(logging.DEBUG)
         self._logger.propagate = False
