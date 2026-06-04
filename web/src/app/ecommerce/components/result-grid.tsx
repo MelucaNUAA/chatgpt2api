@@ -122,13 +122,15 @@ function Lightbox({
       onClick={onClose}
     >
       <div
-        className="relative max-h-[40vh] max-w-[40vw]"
+        className="relative"
+        style={{ maxHeight: "40vh", maxWidth: "40vw" }}
         onClick={(e) => e.stopPropagation()}
       >
         <img
           src={getImageSrc(result)}
           alt="预览"
-          className="max-h-[40vh] max-w-[40vw] rounded-lg object-contain"
+          className="rounded-lg object-contain"
+          style={{ maxHeight: "40vh", maxWidth: "40vw" }}
         />
         <div className="absolute -top-3 -right-3 flex gap-2">
           <button
