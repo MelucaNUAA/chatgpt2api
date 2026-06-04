@@ -363,17 +363,16 @@ function EcommercePageContent() {
 
       {/* Right: Schemes + Results */}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        {/* Scheme editor */}
-        <div className="flex-1 overflow-y-auto p-4">
+        {/* Scheme editor — fixed 45% height */}
+        <div className="h-[45%] shrink-0 overflow-y-auto border-b border-stone-200 p-4">
           {schemes.length === 0 ? (
             <div className="flex h-full items-center justify-center text-stone-400">
               填写商品信息后点击 &quot;生成方案&quot; 开始
             </div>
           ) : (
             <>
-              {/* Generate All button */}
               {canGenerateAll && (
-                <div className="mb-4 flex justify-end">
+                <div className="mb-3 flex justify-end">
                   <button
                     type="button"
                     onClick={handleGenerateAll}
@@ -384,7 +383,7 @@ function EcommercePageContent() {
                 </div>
               )}
 
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="space-y-2">
                 {schemes.map((scheme) => (
                   <SchemeCard
                     key={scheme.id}
@@ -399,8 +398,8 @@ function EcommercePageContent() {
           )}
         </div>
 
-        {/* Result grid */}
-        <div className="border-t border-stone-200 p-4">
+        {/* Result grid — takes remaining 55% */}
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">
           <ResultGrid results={results} onRetry={handleRetryResult} />
         </div>
       </div>

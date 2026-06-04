@@ -2,18 +2,17 @@
 
 import * as React from "react";
 import {
-  GripVertical,
   Trash2,
   ChevronDown,
   Loader2,
   CheckCircle2,
   AlertCircle,
   Image as ImageIcon,
+  Wand2,
 } from "lucide-react";
 
 import type { ImageScheme, TextMode, TextOverlay } from "@/store/ecommerce";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -36,12 +35,12 @@ type SchemeCardProps = {
 
 const STATUS_CONFIG: Record<
   ImageScheme["status"],
-  { label: string; variant: "default" | "success" | "warning" | "danger" }
+  { label: string; color: string }
 > = {
-  draft: { label: "草稿", variant: "default" },
-  generating: { label: "生成中", variant: "warning" },
-  done: { label: "已完成", variant: "success" },
-  error: { label: "失败", variant: "danger" },
+  draft: { label: "草稿", color: "bg-stone-100 text-stone-600" },
+  generating: { label: "生成中", color: "bg-amber-50 text-amber-600" },
+  done: { label: "完成", color: "bg-emerald-50 text-emerald-600" },
+  error: { label: "失败", color: "bg-red-50 text-red-600" },
 };
 
 // ---------------------------------------------------------------------------
@@ -50,20 +49,9 @@ const STATUS_CONFIG: Record<
 
 export function SchemeCard(props: SchemeCardProps) {
   const { scheme, onUpdate, onDelete, onGenerate } = props;
-  const [textOverlayOpen, setTextOverlayOpen] = React.useState(
-    scheme.textOverlay.enabled,
-  );
+  const [overlayOpen, setOverlayOpen] = React.useState(false);
 
   const statusCfg = STATUS_CONFIG[scheme.status];
-
-  // -- Update helpers -------------------------------------------------------
-
-  function updateField<K extends keyof ImageScheme>(
-    key: K,
-    value: ImageScheme[K],
-  ) {
-    onUpdate({ ...scheme, [key]: value });
-  }
 
   function updateOverlay<K extends keyof TextOverlay>(
     key: K,
@@ -75,197 +63,159 @@ export function SchemeCard(props: SchemeCardProps) {
     });
   }
 
-  // -- Render ---------------------------------------------------------------
+  const isGenerating = scheme.status === "generating";
 
   return (
-    <div className="group rounded-2xl border border-stone-200 bg-white shadow-sm transition-shadow hover:shadow-md">
-      {/* Header */}
-      <div className="flex items-center gap-2 border-b border-stone-100 px-4 py-3">
-        <GripVertical className="size-4 shrink-0 cursor-grab text-stone-300" />
-
-        <Badge variant="secondary" className="shrink-0">
+    <div className="rounded-xl border border-stone-200 bg-white">
+      {/* Main row: badge + prompt + actions */}
+      <div className="flex items-start gap-2 p-2.5">
+        <Badge
+          variant="secondary"
+          className={cn("mt-0.5 shrink-0 rounded-md text-[11px]", statusCfg.color)}
+        >
           {scheme.type || "未分类"}
         </Badge>
 
-        <Badge variant={statusCfg.variant} className="shrink-0">
-          {statusCfg.label}
-        </Badge>
-
-        <div className="flex-1" />
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-7 text-stone-400 hover:text-rose-500"
-          onClick={onDelete}
-          title="删除方案"
-        >
-          <Trash2 className="size-4" />
-        </Button>
-      </div>
-
-      {/* Prompt */}
-      <div className="px-4 pt-3 pb-2">
         <Textarea
-          placeholder="输入图片生成提示词 (英文效果更佳)..."
+          placeholder="输入提示词 (英文效果更佳)..."
           value={scheme.prompt}
-          onChange={(e) => updateField("prompt", e.target.value)}
-          className="min-h-20 rounded-xl text-sm"
+          onChange={(e) => onUpdate({ ...scheme, prompt: e.target.value })}
+          rows={2}
+          className="min-h-0 flex-1 resize-none rounded-lg border-0 bg-stone-50 px-2.5 py-1.5 text-xs focus-visible:ring-1"
         />
+
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setOverlayOpen((v) => !v)}
+            className={cn(
+              "rounded-lg p-1.5 transition-colors",
+              scheme.textOverlay.enabled
+                ? "text-blue-500 hover:bg-blue-50"
+                : "text-stone-400 hover:bg-stone-100",
+            )}
+            title="文字叠加"
+          >
+            <Wand2 className="size-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="rounded-lg p-1.5 text-stone-400 transition-colors hover:bg-stone-100 hover:text-rose-500"
+            title="删除"
+          >
+            <Trash2 className="size-3.5" />
+          </button>
+          <button
+            type="button"
+            disabled={isGenerating}
+            onClick={onGenerate}
+            className={cn(
+              "flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+              scheme.status === "done"
+                ? "bg-emerald-100 text-emerald-700"
+                : scheme.status === "error"
+                  ? "bg-red-100 text-red-700"
+                  : "bg-stone-900 text-white hover:bg-stone-800 disabled:bg-stone-300",
+            )}
+          >
+            {isGenerating ? (
+              <Loader2 className="size-3 animate-spin" />
+            ) : scheme.status === "done" ? (
+              <CheckCircle2 className="size-3" />
+            ) : scheme.status === "error" ? (
+              <AlertCircle className="size-3" />
+            ) : (
+              <ImageIcon className="size-3" />
+            )}
+            {isGenerating ? "生成中" : scheme.status === "done" ? "重新生成" : scheme.status === "error" ? "重试" : "生成"}
+          </button>
+        </div>
       </div>
 
-      {/* Text Overlay Section */}
-      <div className="px-4 pb-3">
-        <button
-          type="button"
-          className="flex w-full items-center gap-1.5 text-sm font-medium text-stone-500 transition-colors hover:text-stone-700"
-          onClick={() => setTextOverlayOpen((v) => !v)}
-        >
-          <ChevronDown
-            className={cn(
-              "size-4 transition-transform",
-              textOverlayOpen && "rotate-180",
-            )}
-          />
-          文字叠加
-        </button>
-
-        {textOverlayOpen && (
-          <div className="mt-2 space-y-3 rounded-xl bg-stone-50 p-3">
-            {/* Enable toggle */}
-            <label className="flex items-center gap-2 text-sm">
+      {/* Text overlay (collapsed by default) */}
+      {overlayOpen && (
+        <div className="border-t border-stone-100 px-2.5 py-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="flex items-center gap-1.5 text-xs">
               <Checkbox
                 checked={scheme.textOverlay.enabled}
                 onCheckedChange={(checked) =>
                   updateOverlay("enabled", checked === true)
                 }
+                className="size-3"
               />
-              <span className="text-stone-600">启用文字叠加</span>
+              <span className="text-stone-500">启用</span>
             </label>
 
-            {/* Text mode radio */}
-            <div className="flex items-center gap-4 text-sm">
-              <span className="text-stone-500">模式：</span>
-              {(
-                [
-                  { value: "prompt", label: "提示词生成" },
-                  { value: "canvas", label: "Canvas 叠加" },
-                ] as const
-              ).map((opt) => (
-                <label
-                  key={opt.value}
-                  className="flex cursor-pointer items-center gap-1.5"
-                >
-                  <input
-                    type="radio"
-                    name={`textMode-${scheme.id}`}
-                    value={opt.value}
-                    checked={scheme.textMode === opt.value}
-                    onChange={() =>
-                      updateField("textMode", opt.value as TextMode)
-                    }
-                    className="accent-stone-600"
-                  />
-                  <span
-                    className={
-                      scheme.textMode === opt.value
-                        ? "text-stone-800"
-                        : "text-stone-500"
-                    }
-                  >
-                    {opt.label}
-                  </span>
-                </label>
-              ))}
-            </div>
-
-            {/* Text inputs (shown when enabled) */}
-            {scheme.textOverlay.enabled && (
-              <div className="space-y-2">
-                <Input
-                  placeholder="主标题"
-                  value={scheme.textOverlay.title}
-                  onChange={(e) => updateOverlay("title", e.target.value)}
-                  className="h-9 rounded-xl bg-white text-sm"
-                />
-                <Input
-                  placeholder="副标题"
-                  value={scheme.textOverlay.subtitle}
-                  onChange={(e) => updateOverlay("subtitle", e.target.value)}
-                  className="h-9 rounded-xl bg-white text-sm"
-                />
-                <Input
-                  placeholder="补充描述"
-                  value={scheme.textOverlay.description}
-                  onChange={(e) =>
-                    updateOverlay("description", e.target.value)
+            {(
+              [
+                { value: "prompt", label: "提示词生成" },
+                { value: "canvas", label: "Canvas叠加" },
+              ] as const
+            ).map((opt) => (
+              <label key={opt.value} className="flex cursor-pointer items-center gap-1 text-xs">
+                <input
+                  type="radio"
+                  name={`tm-${scheme.id}`}
+                  value={opt.value}
+                  checked={scheme.textMode === opt.value}
+                  onChange={() =>
+                    onUpdate({ ...scheme, textMode: opt.value as TextMode })
                   }
-                  className="h-9 rounded-xl bg-white text-sm"
+                  className="accent-stone-600"
                 />
-                <div className="flex gap-2">
-                  <select
-                    value={scheme.textOverlay.position}
-                    onChange={(e) =>
-                      updateOverlay(
-                        "position",
-                        e.target.value as TextOverlay["position"],
-                      )
-                    }
-                    className="h-9 flex-1 rounded-xl border border-stone-200 bg-white px-3 text-sm text-stone-700 outline-none focus:border-stone-300"
-                  >
-                    <option value="top">顶部</option>
-                    <option value="center">居中</option>
-                    <option value="bottom">底部</option>
-                  </select>
-                  <div className="flex items-center gap-1.5">
-                    <label
-                      htmlFor={`color-${scheme.id}`}
-                      className="text-sm text-stone-500"
-                    >
-                      颜色
-                    </label>
-                    <input
-                      id={`color-${scheme.id}`}
-                      type="color"
-                      value={scheme.textOverlay.color}
-                      onChange={(e) => updateOverlay("color", e.target.value)}
-                      className="size-7 cursor-pointer rounded border border-stone-200"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+                <span className={scheme.textMode === opt.value ? "text-stone-700" : "text-stone-400"}>
+                  {opt.label}
+                </span>
+              </label>
+            ))}
 
-      {/* Generate button */}
-      <div className="border-t border-stone-100 px-4 py-3">
-        <Button
-          className={cn(
-            "w-full rounded-xl",
-            scheme.status === "done" &&
-              "bg-emerald-600 hover:bg-emerald-700",
+            <select
+              value={scheme.textOverlay.position}
+              onChange={(e) =>
+                updateOverlay("position", e.target.value as TextOverlay["position"])
+              }
+              className="h-6 rounded border border-stone-200 bg-white px-1.5 text-xs text-stone-600"
+            >
+              <option value="top">顶部</option>
+              <option value="center">居中</option>
+              <option value="bottom">底部</option>
+            </select>
+
+            <input
+              type="color"
+              value={scheme.textOverlay.color}
+              onChange={(e) => updateOverlay("color", e.target.value)}
+              className="size-6 cursor-pointer rounded border border-stone-200"
+              title="文字颜色"
+            />
+          </div>
+
+          {scheme.textOverlay.enabled && (
+            <div className="mt-2 grid grid-cols-3 gap-1.5">
+              <Input
+                placeholder="主标题"
+                value={scheme.textOverlay.title}
+                onChange={(e) => updateOverlay("title", e.target.value)}
+                className="h-7 rounded-md bg-stone-50 text-xs"
+              />
+              <Input
+                placeholder="副标题"
+                value={scheme.textOverlay.subtitle}
+                onChange={(e) => updateOverlay("subtitle", e.target.value)}
+                className="h-7 rounded-md bg-stone-50 text-xs"
+              />
+              <Input
+                placeholder="说明文字"
+                value={scheme.textOverlay.description}
+                onChange={(e) => updateOverlay("description", e.target.value)}
+                className="h-7 rounded-md bg-stone-50 text-xs"
+              />
+            </div>
           )}
-          variant={scheme.status === "error" ? "destructive" : "default"}
-          disabled={scheme.status === "generating"}
-          onClick={onGenerate}
-        >
-          {scheme.status === "generating" && (
-            <Loader2 className="size-4 animate-spin" />
-          )}
-          {scheme.status === "done" && <CheckCircle2 className="size-4" />}
-          {scheme.status === "error" && <AlertCircle className="size-4" />}
-          {scheme.status === "draft" && <ImageIcon className="size-4" />}
-          {scheme.status === "generating"
-            ? "生成中..."
-            : scheme.status === "done"
-              ? "重新生成"
-              : scheme.status === "error"
-                ? "重新生成"
-                : "生成此图"}
-        </Button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
