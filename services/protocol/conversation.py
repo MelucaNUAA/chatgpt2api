@@ -16,6 +16,7 @@ from services.config import config
 from services.image_storage_service import image_storage_service
 from services.openai_backend_api import ImagePollTimeoutError, OpenAIBackendAPI
 from utils.helper import IMAGE_MODELS, extract_image_from_message_content
+from utils.image_tokens import count_image_content_tokens
 from utils.log import logger
 
 
@@ -170,18 +171,43 @@ def encoding_for_model(model: str):
             return tiktoken.get_encoding("cl100k_base")
 
 
-def count_message_tokens(messages: list[dict[str, Any]], model: str) -> int:
+def message_text(content: Any) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict) and str(item.get("type") or "") in {"text", "input_text", "output_text"}:
+                parts.append(str(item.get("text") or ""))
+        return "".join(parts)
+    return ""
+
+
+def count_message_image_tokens(messages: list[dict[str, Any]], model: str) -> int:
+    return sum(count_image_content_tokens(message.get("content"), model) for message in messages)
+
+
+def count_message_text_tokens(messages: list[dict[str, Any]], model: str) -> int:
     encoding = encoding_for_model(model)
     total = 0
     for message in messages:
         total += 3
         for key, value in message.items():
-            if not isinstance(value, str):
+            if key == "content" and isinstance(value, list):
+                total += len(encoding.encode(message_text(value)))
+            elif isinstance(value, str):
+                total += len(encoding.encode(value))
+            else:
                 continue
-            total += len(encoding.encode(value))
             if key == "name":
                 total += 1
     return total + 3
+
+
+def count_message_tokens(messages: list[dict[str, Any]], model: str) -> int:
+    return count_message_text_tokens(messages, model) + count_message_image_tokens(messages, model)
 
 
 def count_text_tokens(text: str, model: str) -> int:

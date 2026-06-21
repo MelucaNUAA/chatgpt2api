@@ -270,6 +270,27 @@ const AccountRow = memo(function AccountRow({
           );
         })()}
       </td>
+      <td className="px-4 py-3">
+        {(() => {
+          const inflight = account.image_inflight ?? 0;
+          return (
+            <span
+              className={
+                inflight > 0
+                  ? "font-semibold text-amber-600"
+                  : "text-stone-400"
+              }
+              title={
+                inflight > 0
+                  ? "当前正在生成的图片数。号池空闲时此值持续 > 0，说明并发槽位泄漏、该账号已被静默排除出调度"
+                  : "当前无在途生图任务"
+              }
+            >
+              {inflight}
+            </span>
+          );
+        })()}
+      </td>
       <td className="hidden px-4 py-3 text-stone-500 lg:table-cell">{account.success}</td>
       <td className="hidden px-4 py-3 text-stone-500 lg:table-cell">{account.fail}</td>
       <td className="px-4 py-3">
@@ -813,6 +834,7 @@ function AccountsPageContent() {
                     <th className="hidden w-56 px-4 py-3 sm:table-cell">账号信息</th>
                     <th className="w-24 px-4 py-3">额度</th>
                     <th className="hidden w-40 px-4 py-3 lg:table-cell">恢复时间</th>
+                    <th className="w-18 px-4 py-3">在途</th>
                     <th className="hidden w-18 px-4 py-3 lg:table-cell">成功</th>
                     <th className="hidden w-18 px-4 py-3 lg:table-cell">失败</th>
                     <th className="w-24 px-4 py-3">操作</th>

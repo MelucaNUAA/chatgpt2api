@@ -342,6 +342,48 @@ def extract_oauth_callback_params_from_url(url: str) -> dict[str, str] | None:
     return {"code": code, "state": str((params.get("state") or [""])[0]).strip(), "scope": str((params.get("scope") or [""])[0]).strip()}
 
 
+def request_platform_oauth_token(session: requests.Session, code: str, code_verifier: str) -> dict | None:
+    headers = {
+        "accept": "*/*",
+        "accept-language": "zh-CN,zh;q=0.9",
+        "auth0-client": platform_auth0_client,
+        "cache-control": "no-cache",
+        "content-type": "application/json",
+        "origin": platform_base,
+        "pragma": "no-cache",
+        "priority": "u=1, i",
+        "referer": f"{platform_base}/",
+        "sec-ch-ua": sec_ch_ua,
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Windows"',
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-site",
+        "user-agent": user_agent,
+    }
+    resp = session.post(
+        f"{auth_base}/api/accounts/oauth/token",
+        headers=headers,
+        json={
+            "client_id": platform_oauth_client_id,
+            "code_verifier": code_verifier,
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": platform_oauth_redirect_uri,
+        },
+        verify=False,
+        timeout=60,
+    )
+    if resp.status_code != 200:
+        return None
+    data = resp.json()
+    return {
+        "access_token": data.get("access_token"),
+        "refresh_token": data.get("refresh_token"),
+        "id_token": data.get("id_token"),
+    }
+
+
 def extract_oauth_callback_params_from_consent_session(session: requests.Session, consent_url: str, device_id: str) -> dict[str, str] | None:
     if consent_url.startswith("/"):
         consent_url = f"{auth_base}{consent_url}"
@@ -468,14 +510,17 @@ class PlatformRegistrar:
         step(index, "开始 platform authorize")
         self.session.cookies.set("oai-did", self.device_id, domain=".auth.openai.com")
         self.session.cookies.set("oai-did", self.device_id, domain="auth.openai.com")
-        _, code_challenge = _generate_pkce()
+        self.code_verifier, code_challenge = _generate_pkce()
         params = {
             "issuer": auth_base,
             "client_id": platform_oauth_client_id,
             "audience": platform_oauth_audience,
             "redirect_uri": platform_oauth_redirect_uri,
             "device_id": self.device_id,
-            "screen_hint": "login_or_signup",
+            # 注册流程显式声明 signup：throwaway 域名 OpenAI 会自动当新账号走注册，
+            # 但 @outlook.com/@hotmail.com 这类真实消费邮箱会被 login_or_signup 路由到登录分支，
+            # 后续 user/register 落在错误的 auth step 上报 invalid_auth_step。
+            "screen_hint": "signup",
             "max_age": "0",
             "login_hint": email,
             "scope": "openid profile email offline_access",
@@ -532,7 +577,18 @@ class PlatformRegistrar:
                 step(index, "创建账号失败提示: 邮箱域名很可能因滥用被封禁，请更换邮箱域名", "yellow")
             detail = f", detail={json.dumps(data, ensure_ascii=False)}" if data else ""
             raise RuntimeError(error or f"create_account_http_{getattr(resp, 'status_code', 'unknown')}{detail}")
+        data = _response_json(resp)
+        callback_params = extract_oauth_callback_params_from_url(str(data.get("continue_url") or "").strip())
+        self.platform_auth_code = str((callback_params or {}).get("code") or "").strip()
         step(index, "创建账号资料完成")
+
+    def _exchange_registered_tokens(self, index: int) -> dict:
+        step(index, "开始换 token")
+        tokens = request_platform_oauth_token(self.session, self.platform_auth_code, self.code_verifier)
+        if not tokens:
+            raise RuntimeError("token换取失败")
+        step(index, "token 换取完成")
+        return tokens
 
     def _login_and_exchange_tokens(self, email: str, password: str, mailbox: dict, index: int) -> dict:
         step(index, "开始独立登录换 token")
@@ -668,19 +724,22 @@ class PlatformRegistrar:
         if not email:
             raise RuntimeError("邮箱服务未返回 address")
         step(index, f"邮箱创建完成: {email}")
-        password = _random_password()
-        first_name, last_name = _random_name()
-        self._platform_authorize(email, index)
-        self._register_user(email, password, index)
-        self._send_otp(index)
-        step(index, "开始等待注册验证码")
-        code = wait_for_code(mailbox)
-        if not code:
-            raise RuntimeError("等待注册验证码超时")
-        step(index, f"收到注册验证码: {code}")
-        self._validate_otp(code, index)
-        self._create_account(f"{first_name} {last_name}", _random_birthdate(), index)
-        tokens = self._login_and_exchange_tokens(email, password, mailbox, index)
+        try:
+            password = _random_password()
+            first_name, last_name = _random_name()
+            self._platform_authorize(email, index)
+            self._register_user(email, password, index)
+            self._send_otp(index)
+            step(index, "开始等待注册验证码")
+            code = wait_for_code(mailbox)
+            if not code:
+                raise RuntimeError("等待注册验证码超时")
+            step(index, f"收到注册验证码: {code}")
+            self._validate_otp(code, index)
+            self._create_account(f"{first_name} {last_name}", _random_birthdate(), index)
+            tokens = self._exchange_registered_tokens(index)
+        except Exception as error:
+            raise
         return {
             "email": email,
             "password": password,

@@ -251,6 +251,16 @@ class ConfigStore:
             return 3
 
     @property
+    def image_redundancy_multiplier(self) -> float:
+        """生图冗余倍率：请求 N 张时实际生成 N * multiplier 张，只返回 N 张。
+        通过多账号并发提高出图成功率（某个任务失败时可用其他结果替补）。
+        默认 1.0 表示不开启。"""
+        try:
+            return max(1.0, float(self.data.get("image_redundancy_multiplier", 1.0)))
+        except (TypeError, ValueError):
+            return 1.0
+
+    @property
     def image_upload_max_mb(self) -> int:
         try:
             return max(1, int(self.data.get("image_upload_max_mb", 5)))
